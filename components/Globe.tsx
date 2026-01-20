@@ -30,31 +30,65 @@ interface GlobeComponentProps {
 
 export default function GlobeComponent({ commits }: GlobeComponentProps) {
     const [points, setPoints] = useState<any[]>([]);
+    const [rings, setRings] = useState<any[]>([]);
 
     useEffect(() => {
+        const now = Date.now();
         // Transform commits to globe points
-        const newPoints = commits.map((commit) => ({
-            lat: commit.coordinates[0],
-            lng: commit.coordinates[1],
-            size: 0.1,
-            color: "#60a5fa", // Default blue
-            label: `${commit.author}: ${commit.message}`,
-            ...commit,
-        }));
+        const newPoints = commits.map((commit) => {
+            const age = now - commit.timestamp;
+            const opacity = Math.max(0.1, 1 - age / (24 * 60 * 60 * 1000)); // Fade over 24h
+
+            return {
+                lat: commit.coordinates[0],
+                lng: commit.coordinates[1],
+                size: 0.15,
+                color: `rgba(96, 165, 250, ${opacity})`, // Blue with fading opacity
+                label: `${commit.author}: ${commit.message}`,
+                ...commit,
+            };
+        });
         setPoints(newPoints);
+
+        // Create rings for very recent commits (last 10 mins)
+        const newRings = commits
+            .filter(c => now - c.timestamp < 10 * 60 * 1000)
+            .map(c => ({
+                lat: c.coordinates[0],
+                lng: c.coordinates[1],
+                maxR: 2,
+                propagationSpeed: 1,
+                repeatPeriod: 2000
+            }));
+        setRings(newRings);
     }, [commits]);
 
     return (
         <div className="w-full h-full">
             <Globe
-                backgroundColor="#000510"
+                backgroundColor="rgba(0,0,0,0)"
                 globeImageUrl="//unpkg.com/three-globe/example/img/earth-night.jpg"
                 bumpImageUrl="//unpkg.com/three-globe/example/img/earth-topology.png"
+
+                // Atmosphere
+                showAtmosphere={true}
+                atmosphereColor="#3a445e"
+                atmosphereAltitude={0.15}
+
+                // Points (Commits)
                 pointsData={points}
                 pointRadius="size"
                 pointColor="color"
                 pointAltitude={0.1}
                 pointLabel="label"
+
+                // Rings (Recent activity ripple)
+                ringsData={rings}
+                ringColor={() => "#60a5fa"}
+                ringMaxRadius="maxR"
+                ringPropagationSpeed="propagationSpeed"
+                ringRepeatPeriod="repeatPeriod"
+
                 onPointClick={(point: any) => {
                     window.open(point.authorUrl, "_blank");
                 }}

@@ -7,68 +7,107 @@ const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 export const pollPublicEvents = action({
     args: {},
     handler: async (ctx) => {
-        const response = await fetch("https://api.github.com/events?per_page=100", {
-            headers: {
-                ...(GITHUB_TOKEN ? { Authorization: `token ${GITHUB_TOKEN}` } : {}),
-                "User-Agent": "ghworld-app",
-            },
-        });
+        try {
+            const response = await fetch("https://api.github.com/events?per_page=100", {
+                headers: {
+                    ...(GITHUB_TOKEN ? { Authorization: `token ${GITHUB_TOKEN}` } : {}),
+                    "User-Agent": "ghworld-app",
+                },
+            });
 
-        if (!response.ok) {
-            const error = await response.text();
-            throw new Error(`GitHub API error: ${response.status} ${error}`);
-        }
+            if (!response.ok) {
+                if (response.status === 403 || response.status === 429) {
+                    console.warn("GitHub API rate limit exceeded. Skipping poll.");
+                    return { newCommitsCount: 0, totalEventsProcessed: 0, skippedRateLimit: true };
+                }
+                const error = await response.text();
+                throw new Error(`GitHub API error: ${response.status} ${error}`);
+            }
 
-        const events = await response.json();
-        const newCommits = [];
+            // Check Rate Limit
+            const remaining = response.headers.get("x-ratelimit-remaining");
+            const shouldEnrich = remaining ? parseInt(remaining) > 500 : true;
 
-        for (const event of events) {
-            if (event.type !== "PushEvent") continue;
+            if (remaining && parseInt(remaining) < 1000) {
+                console.warn(`GitHub API Rate Limit low: ${remaining} remaining.`);
+            }
 
-            const repo = event.repo.name;
-            const actor = event.actor.login;
-            const actorUrl = `https://github.com/${actor}`;
-            const payload = event.payload;
+            const events = await response.json();
+            const newCommits = [];
+            let processedPushEvents = 0;
+            let skippedNoLocation = 0;
 
-            if (payload.commits && payload.commits.length > 0) {
-                for (const commit of payload.commits) {
-                    const sha = commit.sha;
-                    const message = commit.message.substring(0, 200);
-                    const timestamp = new Date(event.created_at).getTime();
+            for (const event of events) {
+                if (event.type !== "PushEvent") continue;
+                processedPushEvents++;
 
-                    // Get coordinates
-                    const coordinates = await getCoordinatesForUser(ctx, actor);
+                const repo = event.repo.name;
+                const actor = event.actor.login;
+                const actorUrl = `https://github.com/${actor}`;
+                const payload = event.payload;
+                const sha = payload.head;
 
-                    if (coordinates) {
-                        newCommits.push({
-                            sha,
-                            author: actor,
-                            message,
-                            repo,
-                            timestamp,
-                            coordinates,
-                            authorUrl: actorUrl,
-                        });
+                if (!sha) continue;
+
+                // 1. Get coordinates (Real or Fallback)
+                const coordinates = await getCoordinatesForUser(ctx, actor);
+
+                if (coordinates) {
+                    let message = "Commit activity";
+
+                    // 2. Enrich if safe to do so
+                    if (shouldEnrich) {
+                        try {
+                            const commitResponse = await fetch(`https://api.github.com/repos/${repo}/commits/${sha}`, {
+                                headers: {
+                                    ...(GITHUB_TOKEN ? { Authorization: `token ${GITHUB_TOKEN}` } : {}),
+                                    "User-Agent": "ghworld-app",
+                                },
+                            });
+
+                            if (commitResponse.ok) {
+                                const commitData = await commitResponse.json();
+                                message = commitData.commit.message.substring(0, 200);
+                            }
+                        } catch (e) {
+                            // Ignore enrichment errors
+                        }
                     }
+
+                    newCommits.push({
+                        sha,
+                        author: actor,
+                        message,
+                        repo,
+                        timestamp: new Date(event.created_at).getTime(),
+                        coordinates,
+                        authorUrl: actorUrl,
+                    });
                 }
             }
-        }
 
-        if (newCommits.length > 0) {
-            await ctx.runMutation(internal.commits.insertCommits, { commits: newCommits });
-        }
+            if (newCommits.length > 0) {
+                await ctx.runMutation(internal.commits.insertCommits, { commits: newCommits });
+            }
 
-        return {
-            newCommitsCount: newCommits.length,
-            totalEventsProcessed: events.length,
-        };
+            console.log(`Poll results: ${newCommits.length} stored. ${processedPushEvents} push events. Limit remaining: ${remaining}`);
+
+            return {
+                newCommitsCount: newCommits.length,
+                totalEventsProcessed: events.length,
+            };
+
+        } catch (error) {
+            console.error("Poll failed:", error);
+            return { error: String(error) };
+        }
     },
 });
 
 async function getCoordinatesForUser(ctx: any, username: string): Promise<number[] | null> {
     // Check cache first
     const cached = await ctx.runQuery(internal.commits.getCachedLocation, { username });
-    if (cached && Date.now() - cached.cachedAt < 30 * 24 * 60 * 60 * 1000) {
+    if (cached) {
         return cached.coordinates;
     }
 
@@ -88,6 +127,7 @@ async function getCoordinatesForUser(ctx: any, username: string): Promise<number
             if (location) {
                 const coords = await geocodeLocation(location);
                 if (coords) {
+                    // Cache successful geocode
                     await ctx.runMutation(internal.commits.cacheLocation, {
                         username,
                         location,

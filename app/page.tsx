@@ -45,8 +45,8 @@ export default function Home() {
     endTime: startTime + windowSizeHours * 60 * 60 * 1000,
   });
 
-  // Calculate min/max time from database if possible (optional enhancement)
-  const minTime = useMemo(() => Date.now() - 24 * 60 * 60 * 1000, []); // Last 24h as range
+  const oldestTimestamp = useQuery(api.commits.getOldestCommitTimestamp);
+  const minTime = oldestTimestamp ?? (Date.now() - 24 * 60 * 60 * 1000);
   const maxTime = Date.now();
 
   return (
