@@ -410,7 +410,7 @@ return createDayNightMaterial();
         if (!globeRef.current) return;
 
         const controls = globeRef.current.controls();
-if (!controls) return;
+        if (!controls) return;
 
         // Enable damping for smooth camera movement
         controls.enableDamping = true;
@@ -457,6 +457,66 @@ if (!controls) return;
                 clearTimeout(autoRotateTimeoutRef.current);
             }
         };
+    }, []);
+
+    // Keyboard navigation controls
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (!globeRef.current) return;
+
+            // Don't intercept if user is typing in an input field
+            if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+
+            const currentPov = globeRef.current.pointOfView();
+            const rotationStep = 10; // degrees per keypress
+            const zoomStep = 0.3; // altitude change per keypress
+
+            let newPov = { ...currentPov };
+            let handled = false;
+
+            switch (e.key) {
+                case 'ArrowLeft':
+                    newPov.lng = currentPov.lng - rotationStep;
+                    handled = true;
+                    break;
+                case 'ArrowRight':
+                    newPov.lng = currentPov.lng + rotationStep;
+                    handled = true;
+                    break;
+                case 'ArrowUp':
+                    newPov.lat = Math.min(90, currentPov.lat + rotationStep);
+                    handled = true;
+                    break;
+                case 'ArrowDown':
+                    newPov.lat = Math.max(-90, currentPov.lat - rotationStep);
+                    handled = true;
+                    break;
+                case '+':
+                case '=': // Allow = key without shift for easier zoom in
+                    newPov.altitude = Math.max(0.5, currentPov.altitude - zoomStep);
+                    handled = true;
+                    break;
+                case '-':
+                case '_':
+                    newPov.altitude = Math.min(4, currentPov.altitude + zoomStep);
+                    handled = true;
+                    break;
+                case 'r':
+                case 'R':
+                    // Reset to default view
+                    newPov = { lat: 20, lng: 0, altitude: 2.5 };
+                    handled = true;
+                    break;
+            }
+
+            if (handled) {
+                e.preventDefault();
+                globeRef.current.pointOfView(newPov, 200); // 200ms smooth transition
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
     }, []);
 
     // Viewport tracking logic
