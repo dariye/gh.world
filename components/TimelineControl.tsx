@@ -49,12 +49,13 @@ export default function TimelineControl({
     });
 
     return (
-        <div className="fixed bottom-0 left-0 right-0 p-6 bg-card/80 backdrop-blur-md border-t border-border z-50">
+        <div className="fixed bottom-0 left-0 right-0 p-3 sm:p-6 bg-card/80 backdrop-blur-md border-t border-border z-50">
             {mounted && (
-                <div className="max-w-4xl mx-auto flex flex-col gap-4">
+                <div className="max-w-4xl mx-auto flex flex-col gap-2 sm:gap-4">
                     {/* Time Info */}
-                    <div className="flex justify-between items-center text-xs font-mono text-muted-foreground">
-                        <span>{timeFormatter.format(startTime)}</span>
+                    <div className="flex justify-between items-center text-[10px] sm:text-xs font-mono text-muted-foreground">
+                        <span className="hidden sm:inline">{timeFormatter.format(startTime)}</span>
+                        <span className="sm:hidden">{new Date(startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                         <div className="flex flex-col items-center">
                             {isLive ? (
                                 <span className="text-green-400 font-bold animate-pulse flex items-center gap-1">
@@ -68,18 +69,19 @@ export default function TimelineControl({
                                 </div>
                             )}
                         </div>
-                        <span>{timeFormatter.format(endTime)}</span>
+                        <span className="hidden sm:inline">{timeFormatter.format(endTime)}</span>
+                        <span className="sm:hidden">{new Date(endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                     </div>
 
                     {/* Controls Row */}
-                    <div className="flex gap-4 items-center">
+                    <div className="flex gap-2 sm:gap-4 items-center">
                         {/* Play/Pause & Live Controls */}
-                        <div className="flex gap-2 shrink-0">
+                        <div className="flex gap-1.5 sm:gap-2 shrink-0">
                             <Button
                                 onClick={() => onPlayPause(!isPlaying)}
                                 variant="outline"
                                 size="icon"
-                                className={`border-border ${isPlaying && !isLive ? "bg-primary/20 text-primary border-primary/50" : ""}`}
+                                className={`h-9 w-9 sm:h-10 sm:w-10 border-border ${isPlaying && !isLive ? "bg-primary/20 text-primary border-primary/50" : ""}`}
                             >
                                 {isPlaying && !isLive ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
                             </Button>
@@ -88,7 +90,7 @@ export default function TimelineControl({
                                 onClick={() => onLiveToggle(!isLive)}
                                 variant={isLive ? "default" : "outline"}
                                 size="icon"
-                                className={`${isLive
+                                className={`h-9 w-9 sm:h-10 sm:w-10 ${isLive
                                     ? "bg-green-600 hover:bg-green-700 border-none"
                                     : "border-border text-green-500 hover:bg-green-950/30 hover:text-green-400"
                                     }`}
@@ -109,13 +111,13 @@ export default function TimelineControl({
                             className="flex-1"
                         />
 
-                        {/* Speed Controls */}
-                        <div className="flex gap-1 bg-muted/50 rounded-md p-1 shrink-0">
+                        {/* Speed Controls - hidden on very small screens */}
+                        <div className="hidden xs:flex gap-0.5 sm:gap-1 bg-muted/50 rounded-md p-0.5 sm:p-1 shrink-0">
                             {speeds.map((s) => (
                                 <button
                                     key={s}
                                     onClick={() => onPlaybackSpeedChange(s)}
-                                    className={`px-2 py-1 text-[10px] font-mono rounded transition-colors ${playbackSpeed === s
+                                    className={`px-1.5 sm:px-2 py-1 sm:py-1.5 text-[10px] sm:text-xs font-mono rounded transition-colors min-w-[28px] sm:min-w-[32px] ${playbackSpeed === s
                                         ? "bg-accent text-accent-foreground font-bold"
                                         : "text-muted-foreground hover:text-foreground"
                                         }`}

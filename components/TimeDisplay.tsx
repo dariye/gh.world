@@ -44,18 +44,18 @@ export default function TimeDisplay({ viewTime, isLive }: TimeDisplayProps) {
     }, [displayTime]);
 
     return (
-        <div className="flex items-center gap-2 bg-card/70 backdrop-blur-sm px-3 py-2 rounded-lg border border-white/10">
-            <Clock className="w-4 h-4 text-blue-400" />
+        <div className="flex items-center gap-1.5 sm:gap-2 bg-card/70 backdrop-blur-sm px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg border border-white/10">
+            <Clock className="w-3 h-3 sm:w-4 sm:h-4 text-blue-400 shrink-0" />
             <div className="flex flex-col">
-                <span className="text-white/90 text-sm font-mono tabular-nums">
+                <span className="text-white/90 text-xs sm:text-sm font-mono tabular-nums">
                     {formattedDateTime.timeStr}
                 </span>
-                <span className="text-white/50 text-[10px] font-mono uppercase tracking-wider">
+                <span className="text-white/50 text-[9px] sm:text-[10px] font-mono uppercase tracking-wider">
                     {formattedDateTime.dateStr}
                 </span>
             </div>
             {!isLive && (
-                <span className="text-amber-400/80 text-[9px] font-mono ml-1 uppercase">
+                <span className="text-amber-400/80 text-[8px] sm:text-[9px] font-mono ml-0.5 sm:ml-1 uppercase">
                     simulated
                 </span>
             )}
