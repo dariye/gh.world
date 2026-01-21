@@ -15,6 +15,7 @@ import LanguageFilter from "@/components/LanguageFilter";
 import CommitDetails from "@/components/CommitDetails";
 import { ModeToggle } from "@/components/ModeToggle";
 import { StatsSidebar } from "@/components/StatsSidebar";
+import { ProfileSearch } from "@/components/ProfileSearch";
 import KeyboardShortcutsHelp from "@/components/KeyboardShortcutsHelp";
 import { useKeyboardShortcuts } from "@/lib/useKeyboardShortcuts";
 import { SUPPORTED_LANGUAGES } from "@/lib/colors";
@@ -218,6 +219,7 @@ export default function Home() {
         </div>
         <div className="flex items-center gap-1.5 sm:gap-2">
           <LanguageFilter value={selectedLanguage} onChange={setSelectedLanguage} />
+          <ProfileSearch />
           <StatsSidebar isOpen={isStatsOpen} onOpenChange={setIsStatsOpen} />
         </div>
       </div>
