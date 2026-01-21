@@ -27,14 +27,17 @@ interface GeoJSONFeature {
     };
 }
 
-// GitHub contribution square colors (dark theme style)
-const HEX_COLORS = [
-    '#161b22', // level 0 - darkest (ocean-like)
-    '#0e4429', // level 1 - very dark green
-    '#006d32', // level 2 - dark green
-    '#26a641', // level 3 - medium green
-    '#39d353', // level 4 - bright green
-];
+// GitHub contribution-style colors for hex activity
+const HEX_COLORS = {
+    inactive: '#30363d', // Gray for land with no activity
+    level1: '#0e4429',   // Very low activity (1-2 commits)
+    level2: '#006d32',   // Low activity (3-9 commits)
+    level3: '#26a641',   // Medium activity (10-29 commits)
+    level4: '#39d353',   // High activity (30+ commits)
+};
+
+// Grid cell size in degrees for activity mapping
+const GRID_CELL_SIZE = 5;
 
 // Pre-computed RGB values to avoid regex parsing on every render
 const LANGUAGE_COLORS_RGB: Record<string, [number, number, number]> = {
@@ -145,26 +148,75 @@ function GlobeComponent({
             .catch(err => console.error('Failed to load countries GeoJSON:', err));
     }, []);
 
-    // Generate hex color based on country feature (creates varied terrain look)
+    // Create activity grid from commits (maps grid cells to commit counts)
+    const activityGrid = useMemo(() => {
+        const grid = new Map<string, number>();
+        for (const commit of commits) {
+            if (commit.coordinates && commit.coordinates.length === 2) {
+                // Filter by language if selected
+                if (selectedLanguage && commit.language !== selectedLanguage) continue;
+
+                const lat = commit.coordinates[0];
+                const lng = commit.coordinates[1];
+                const cellKey = `${Math.floor(lat / GRID_CELL_SIZE)},${Math.floor(lng / GRID_CELL_SIZE)}`;
+                grid.set(cellKey, (grid.get(cellKey) || 0) + 1);
+            }
+        }
+        return grid;
+    }, [commits, selectedLanguage]);
+
+    // Get a representative point from a country GeoJSON feature
+    const getCountryPoint = (feature: GeoJSONFeature): [number, number] | null => {
+        const coords = feature.geometry.coordinates;
+        if (!coords || !coords.length) return null;
+
+        if (feature.geometry.type === 'Polygon') {
+            const ring = coords[0] as number[][];
+            if (ring.length > 0) {
+                return [ring[0][1], ring[0][0]]; // [lat, lng]
+            }
+        } else if (feature.geometry.type === 'MultiPolygon') {
+            const polygon = coords[0] as number[][][];
+            if (polygon.length > 0 && polygon[0].length > 0) {
+                return [polygon[0][0][1], polygon[0][0][0]]; // [lat, lng]
+            }
+        }
+        return null;
+    };
+
+    // Generate hex color based on commit activity (GitHub contribution graph style)
     const getHexColor = useMemo(() => {
         return (obj: object) => {
             const feature = obj as GeoJSONFeature;
-            // Use a hash of the country name to get consistent but varied colors
-            const name = (feature.properties?.ADMIN as string) || '';
-            let hash = 0;
-            for (let i = 0; i < name.length; i++) {
-                hash = ((hash << 5) - hash) + name.charCodeAt(i);
-                hash = hash & hash;
+            const point = getCountryPoint(feature);
+
+            if (!point) return HEX_COLORS.inactive; // Gray fallback
+
+            const [lat, lng] = point;
+            const latCell = Math.floor(lat / GRID_CELL_SIZE);
+            const lngCell = Math.floor(lng / GRID_CELL_SIZE);
+
+            // Check 3x3 grid around the point to capture nearby activity
+            let activity = 0;
+            for (let dLat = -1; dLat <= 1; dLat++) {
+                for (let dLng = -1; dLng <= 1; dLng++) {
+                    const cellKey = `${latCell + dLat},${lngCell + dLng}`;
+                    activity += activityGrid.get(cellKey) || 0;
+                }
             }
-            // Map to contribution levels 1-4 (skip level 0 which is for ocean)
-            const level = (Math.abs(hash) % 4) + 1;
-            return HEX_COLORS[level];
+
+            // Gray for no activity, green shades for activity (like GitHub contribution graph)
+            if (activity === 0) return HEX_COLORS.inactive;
+            if (activity < 3) return HEX_COLORS.level1;
+            if (activity < 10) return HEX_COLORS.level2;
+            if (activity < 30) return HEX_COLORS.level3;
+            return HEX_COLORS.level4;
         };
-    }, []);
+    }, [activityGrid]);
 
     // Create day/night shader material once on mount (client-side only)
     const globeMaterial = useMemo(() => {
-        if (typeof window === 'undefined') return null;
+        if (typeof window === 'undefined') return undefined;
         return createDayNightMaterial();
     }, []);
 
