@@ -213,19 +213,19 @@ function GlobeComponent({
             let levelColor: string;
             if (activity === 0) {
                 levelLabel = 'No activity';
-                levelColor = HEX_COLORS.inactive;
+                levelColor = CONTRIBUTION_COLORS.level0;
             } else if (activity < 3) {
                 levelLabel = 'Low';
-                levelColor = HEX_COLORS.level1;
+                levelColor = CONTRIBUTION_COLORS.level1;
             } else if (activity < 10) {
                 levelLabel = 'Medium';
-                levelColor = HEX_COLORS.level2;
+                levelColor = CONTRIBUTION_COLORS.level2;
             } else if (activity < 30) {
                 levelLabel = 'High';
-                levelColor = HEX_COLORS.level3;
+                levelColor = CONTRIBUTION_COLORS.level3;
             } else {
                 levelLabel = 'Very High';
-                levelColor = HEX_COLORS.level4;
+                levelColor = CONTRIBUTION_COLORS.level4;
             }
 
             const commitText = activity === 1 ? '1 commit' : `${activity} commits`;
