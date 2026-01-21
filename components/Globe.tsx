@@ -25,13 +25,13 @@ interface GeoJSONFeature {
     };
 }
 
-// GitHub contribution-style colors for hex activity
+// GitHub contribution graph colors (exact palette)
 const HEX_COLORS = {
-    inactive: '#30363d', // Gray for land with no activity
-    level1: '#0e4429',   // Very low activity (1-2 commits)
-    level2: '#006d32',   // Low activity (3-9 commits)
-    level3: '#26a641',   // Medium activity (10-29 commits)
-    level4: '#39d353',   // High activity (30+ commits)
+    inactive: '#ebedf0', // None: off-white
+    level1: '#9be9a8',   // Low activity (1-2 commits)
+    level2: '#40c463',   // Medium activity (3-9 commits)
+    level3: '#30a14e',   // High activity (10-29 commits)
+    level4: '#216e39',   // Very High activity (30+ commits)
 };
 
 // Grid cell size in degrees for activity mapping
@@ -168,6 +168,36 @@ function GlobeComponent({
             if (activity < 10) return HEX_COLORS.level2;
             if (activity < 30) return HEX_COLORS.level3;
             return HEX_COLORS.level4;
+        };
+    }, [activityGrid]);
+
+    // Generate hex altitude based on commit activity (extruded contribution tiles)
+    const getHexAltitude = useMemo(() => {
+        return (obj: object) => {
+            const feature = obj as GeoJSONFeature;
+            const point = getCountryPoint(feature);
+
+            if (!point) return 0.005; // Flat baseline
+
+            const [lat, lng] = point;
+            const latCell = Math.floor(lat / GRID_CELL_SIZE);
+            const lngCell = Math.floor(lng / GRID_CELL_SIZE);
+
+            // Check 3x3 grid around the point to capture nearby activity
+            let activity = 0;
+            for (let dLat = -1; dLat <= 1; dLat++) {
+                for (let dLng = -1; dLng <= 1; dLng++) {
+                    const cellKey = `${latCell + dLat},${lngCell + dLng}`;
+                    activity += activityGrid.get(cellKey) || 0;
+                }
+            }
+
+            // Dynamic altitude based on activity level
+            if (activity === 0) return 0.005;  // Flat baseline
+            if (activity < 3) return 0.01;     // Low activity (1-2)
+            if (activity < 10) return 0.02;    // Medium activity (3-9)
+            if (activity < 30) return 0.035;   // High activity (10-29)
+            return 0.05;                        // Very high activity (30+)
         };
     }, [activityGrid]);
 
@@ -387,7 +417,7 @@ function GlobeComponent({
                 hexPolygonResolution={3}
                 hexPolygonMargin={0.4}
                 hexPolygonColor={getHexColor}
-                hexPolygonAltitude={0.005}
+                hexPolygonAltitude={getHexAltitude}
 
                 // Atmosphere
                 showAtmosphere={true}
