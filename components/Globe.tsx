@@ -54,8 +54,9 @@ export interface Viewport {
     maxLng: number;
 }
 
-// Time in ms before auto-rotation resumes after user stops interacting
-const AUTO_ROTATE_RESUME_DELAY = 5000;
+// Auto-rotate settings
+const AUTO_ROTATE_SPEED = 0.3; // Degrees per frame (slow rotation)
+const AUTO_ROTATE_RESUME_DELAY = 5000; // Resume after 5 seconds of inactivity
 
 export interface TargetLocation {
     lat: number;
@@ -81,7 +82,7 @@ function GlobeComponent({
     targetLocation?: TargetLocation | null
 }) {
     const globeRef = useRef<any>(null);
-    const resumeTimerRef = useRef<NodeJS.Timeout | null>(null);
+const autoRotateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     const [atmosphereAltitude, setAtmosphereAltitude] = useState(0.15);
     const [atmosphereColor, setAtmosphereColor] = useState("#1a3050");
@@ -404,16 +405,58 @@ return createDayNightMaterial();
         return () => window.removeEventListener("resize", updateDimensions);
     }, []);
 
-    // Configure orbit controls with damping for smooth camera movement
+// Configure orbit controls with auto-rotate and pause on interaction
     useEffect(() => {
         if (!globeRef.current) return;
 
         const controls = globeRef.current.controls();
-        if (controls) {
-            controls.enableDamping = true;
-            controls.dampingFactor = 0.1;
-            controls.rotateSpeed = 0.8;
-        }
+if (!controls) return;
+
+        // Enable damping for smooth camera movement
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.1;
+        controls.rotateSpeed = 0.8;
+
+        // Enable auto-rotate
+        controls.autoRotate = true;
+        controls.autoRotateSpeed = AUTO_ROTATE_SPEED;
+
+        // Handler to pause auto-rotate on user interaction
+        const handleInteractionStart = () => {
+            controls.autoRotate = false;
+
+            // Clear any existing resume timeout
+            if (autoRotateTimeoutRef.current) {
+                clearTimeout(autoRotateTimeoutRef.current);
+            }
+        };
+
+        // Handler to schedule auto-rotate resume after interaction ends
+        const handleInteractionEnd = () => {
+            // Clear any existing timeout
+            if (autoRotateTimeoutRef.current) {
+                clearTimeout(autoRotateTimeoutRef.current);
+            }
+
+            // Schedule resume after delay
+            autoRotateTimeoutRef.current = setTimeout(() => {
+                if (controls) {
+                    controls.autoRotate = true;
+                }
+            }, AUTO_ROTATE_RESUME_DELAY);
+        };
+
+        // Listen for interaction events
+        controls.addEventListener('start', handleInteractionStart);
+        controls.addEventListener('end', handleInteractionEnd);
+
+        return () => {
+            controls.removeEventListener('start', handleInteractionStart);
+            controls.removeEventListener('end', handleInteractionEnd);
+            if (autoRotateTimeoutRef.current) {
+                clearTimeout(autoRotateTimeoutRef.current);
+            }
+        };
     }, []);
 
     // Viewport tracking logic
@@ -483,9 +526,9 @@ return createDayNightMaterial();
 
         const handleInteractionStart = () => {
             // Clear any pending resume timer
-            if (resumeTimerRef.current) {
-                clearTimeout(resumeTimerRef.current);
-                resumeTimerRef.current = null;
+            if (autoRotateTimeoutRef.current) {
+                clearTimeout(autoRotateTimeoutRef.current);
+                autoRotateTimeoutRef.current = null;
             }
             // Pause auto-rotation while user is interacting
             controls.autoRotate = false;
@@ -493,13 +536,13 @@ return createDayNightMaterial();
 
         const handleInteractionEnd = () => {
             // Clear any existing timer
-            if (resumeTimerRef.current) {
-                clearTimeout(resumeTimerRef.current);
+            if (autoRotateTimeoutRef.current) {
+                clearTimeout(autoRotateTimeoutRef.current);
             }
             // Resume auto-rotation after delay
-            resumeTimerRef.current = setTimeout(() => {
+            autoRotateTimeoutRef.current = setTimeout(() => {
                 controls.autoRotate = true;
-                resumeTimerRef.current = null;
+                autoRotateTimeoutRef.current = null;
             }, AUTO_ROTATE_RESUME_DELAY);
         };
 
@@ -509,8 +552,8 @@ return createDayNightMaterial();
         return () => {
             controls.removeEventListener('start', handleInteractionStart);
             controls.removeEventListener('end', handleInteractionEnd);
-            if (resumeTimerRef.current) {
-                clearTimeout(resumeTimerRef.current);
+            if (autoRotateTimeoutRef.current) {
+                clearTimeout(autoRotateTimeoutRef.current);
             }
         };
     }, []);
