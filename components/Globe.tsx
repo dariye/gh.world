@@ -413,7 +413,7 @@ function GlobeComponent({
                 backgroundColor="rgba(0,0,0,0)"
                 width={dimensions.width}
                 height={dimensions.height}
-                globeMaterial={globeMaterial}
+                globeMaterial={globeMaterial ?? undefined}
 
                 // Hexed polygons terrain (GitHub contribution squares style)
                 hexPolygonsData={countries}
