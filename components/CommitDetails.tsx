@@ -32,7 +32,7 @@ export default function CommitDetails({ commit, isOpen, onClose }: CommitDetails
 
     return (
         <Drawer open={isOpen} onOpenChange={(open) => !open && onClose()}>
-            <DrawerContent className="bg-[#000510] border-white/10 text-white max-h-[80vh]">
+            <DrawerContent className="bg-[#060a0f] border-white/5 text-white max-h-[80vh]">
                 <DrawerHeader>
                     <div className="flex items-center gap-2 text-white/60 text-xs font-mono mb-2">
                         <GitCommit className="w-3 h-3" />
@@ -56,7 +56,7 @@ export default function CommitDetails({ commit, isOpen, onClose }: CommitDetails
                 </DrawerHeader>
                 <DrawerFooter>
                     <Button
-                        className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                        className="w-full bg-[#3080b0] hover:bg-[#4090c0] text-white"
                         onClick={() => window.open(commit.authorUrl, "_blank")}
                     >
                         <ExternalLink className="w-4 h-4 mr-2" />

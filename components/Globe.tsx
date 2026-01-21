@@ -9,7 +9,7 @@ import * as THREE from "three";
 const Globe = dynamic(() => import("react-globe.gl"), {
     ssr: false,
     loading: () => (
-        <div className="w-full h-full flex items-center justify-center bg-[#0d1117]">
+        <div className="w-full h-full flex items-center justify-center bg-[#060a0f]">
             <div className="text-blue-400 animate-pulse text-lg font-mono">
                 Initializing Global Commits...
             </div>
@@ -27,13 +27,14 @@ interface GeoJSONFeature {
     };
 }
 
-// GitHub contribution square colors (dark theme style)
+// Alien observer data zone colors - cool blue-cyan spectrum
+// Represents "data zones" as seen from an alien monitoring station
 const HEX_COLORS = [
-    '#161b22', // level 0 - darkest (ocean-like)
-    '#0e4429', // level 1 - very dark green
-    '#006d32', // level 2 - dark green
-    '#26a641', // level 3 - medium green
-    '#39d353', // level 4 - bright green
+    '#070b10', // level 0 - void/ocean (deep space black with subtle blue)
+    '#0c1620', // level 1 - dormant zone (very dark cyan-tinted)
+    '#122838', // level 2 - low activity zone (dark cyan)
+    '#1a3d52', // level 3 - active zone (medium cyan-blue)
+    '#24546e', // level 4 - high activity zone (bright data zone)
 ];
 
 // Pre-computed RGB values to avoid regex parsing on every render
@@ -134,7 +135,7 @@ function GlobeComponent({
     const lightsInitializedRef = useRef(false);
 
     const [atmosphereAltitude, setAtmosphereAltitude] = useState(0.15);
-    const [atmosphereColor, setAtmosphereColor] = useState("#3a445e");
+    const [atmosphereColor, setAtmosphereColor] = useState("#1a3050");
     const [countries, setCountries] = useState<GeoJSONFeature[]>([]);
 
     // Fetch countries GeoJSON for hexed polygons terrain
@@ -193,12 +194,15 @@ function GlobeComponent({
             const age = quantizedTime - commit.timestamp;
 
             if (hasCoords) {
-                // Add to points
-                const opacity = Math.max(0.1, 1 - age / (24 * 60 * 60 * 1000)); // Fade over 24h
+                // Add to points - "data bits" that pulse with freshness
+                const opacity = Math.max(0.15, 1 - age / (24 * 60 * 60 * 1000)); // Fade over 24h, min 0.15
+                // Fresh commits are larger (0.12-0.2), older commits shrink to base size
+                const ageHours = age / (60 * 60 * 1000);
+                const size = Math.max(0.12, 0.2 - ageHours * 0.01); // Shrink 0.01 per hour
                 points.push({
                     lat: commit.coordinates[0],
                     lng: commit.coordinates[1],
-                    size: 0.15,
+                    size,
                     color: getLanguageColor(commit.language ?? null, opacity),
                     label: `${commit.author}: ${commit.message}`,
                     ...commit,
@@ -250,12 +254,12 @@ function GlobeComponent({
             // Reset after animation
             const timer = setTimeout(() => {
                 setAtmosphereAltitude(0.15);
-                setAtmosphereColor("#3a445e");
+                setAtmosphereColor("#1a3050");
             }, 1000);
             return () => clearTimeout(timer);
         } else {
             setAtmosphereAltitude(0.15);
-            setAtmosphereColor("#3a445e");
+            setAtmosphereColor("#1a3050");
         }
     }, [recentUnlocated]);
 
@@ -407,13 +411,13 @@ function GlobeComponent({
     }, [onViewportChange]);
 
     return (
-        <div ref={globeContainerRef} className="w-full h-full bg-[#0d1117]">
+        <div ref={globeContainerRef} className="w-full h-full bg-[#060a0f]">
             <Globe
                 ref={globeRef}
                 backgroundColor="rgba(0,0,0,0)"
                 width={dimensions.width}
                 height={dimensions.height}
-                globeMaterial={globeMaterial}
+                globeMaterial={globeMaterial ?? undefined}
 
                 // Hexed polygons terrain (GitHub contribution squares style)
                 hexPolygonsData={countries}
@@ -427,11 +431,11 @@ function GlobeComponent({
                 atmosphereColor={atmosphereColor}
                 atmosphereAltitude={atmosphereAltitude}
 
-                // Points (Commits)
+                // Points (Commits) - "data bits" floating above data zones
                 pointsData={points}
                 pointRadius="size"
                 pointColor="color"
-                pointAltitude={0.1}
+                pointAltitude={0.12}
                 pointLabel="label"
 
                 // Rings (Recent activity ripple with language colors and fade-out)
