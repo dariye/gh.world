@@ -40,3 +40,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+.beads/.beads/
+.beads/.local_version
+.beads/last-touched
+.beads/metadata.json

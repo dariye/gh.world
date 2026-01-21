@@ -3,6 +3,8 @@
 import dynamic from "next/dynamic";
 import { useEffect, useRef, useState, useMemo, memo } from "react";
 import { createDayNightMaterial, updateSunDirection } from "./DayNightShader";
+import SunCalc from "suncalc";
+import * as THREE from "three";
 
 const Globe = dynamic(() => import("react-globe.gl"), {
     ssr: false,
@@ -34,6 +36,44 @@ const LANGUAGE_COLORS_RGB: Record<string, [number, number, number]> = {
 function getLanguageColor(language: string | null, opacity: number) {
     const [r, g, b] = LANGUAGE_COLORS_RGB[language || "Other"] || LANGUAGE_COLORS_RGB["Other"];
     return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+}
+
+// Calculate sun position as a 3D vector for directional light
+function getSunPosition(date: Date): THREE.Vector3 {
+    // Get sun position at lat 0, lng 0 - this gives us the subsolar point
+    const sunPos = SunCalc.getPosition(date, 0, 0);
+
+    // Convert altitude (elevation) and azimuth to a direction vector
+    // SunCalc azimuth: 0 = south, positive = west
+    // We need to convert to a coordinate system where the light points toward Earth
+    const altitude = sunPos.altitude;
+    const azimuth = sunPos.azimuth;
+
+    // Calculate subsolar point (where sun is directly overhead)
+    // The sun's declination determines latitude, and hour angle determines longitude
+    const sunTimes = SunCalc.getTimes(date, 0, 0);
+    const solarNoon = sunTimes.solarNoon;
+    const hourAngle = ((date.getTime() - solarNoon.getTime()) / (1000 * 60 * 60)) * 15; // degrees per hour
+
+    // Get sun's declination (latitude of subsolar point)
+    const dayOfYear = Math.floor((date.getTime() - new Date(date.getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24));
+    const declination = -23.45 * Math.cos((360 / 365) * (dayOfYear + 10) * (Math.PI / 180));
+
+    // Subsolar longitude: opposite of hour angle from UTC
+    const subsolarLng = -hourAngle - (date.getTimezoneOffset() / 60) * 15;
+    const subsolarLat = declination;
+
+    // Convert lat/lng to 3D position (distance from globe center)
+    const phi = (90 - subsolarLat) * (Math.PI / 180);
+    const theta = (subsolarLng + 180) * (Math.PI / 180);
+
+    // Position the light far from the globe, pointing at the subsolar point
+    const distance = 200;
+    const x = distance * Math.sin(phi) * Math.cos(theta);
+    const z = distance * Math.sin(phi) * Math.sin(theta);
+    const y = distance * Math.cos(phi);
+
+    return new THREE.Vector3(x, y, z);
 }
 
 export interface Commit {
@@ -70,6 +110,9 @@ function GlobeComponent({
     isPlaying?: boolean
 }) {
     const globeRef = useRef<any>(null);
+    const ambientLightRef = useRef<THREE.AmbientLight | null>(null);
+    const directionalLightRef = useRef<THREE.DirectionalLight | null>(null);
+    const lightsInitializedRef = useRef(false);
 
     const [atmosphereAltitude, setAtmosphereAltitude] = useState(0.15);
     const [atmosphereColor, setAtmosphereColor] = useState("#3a445e");
@@ -160,6 +203,48 @@ function GlobeComponent({
             setAtmosphereColor("#3a445e");
         }
     }, [recentUnlocated]);
+
+    // Set up directional sun lighting
+    useEffect(() => {
+        if (!globeRef.current || lightsInitializedRef.current) return;
+
+        const scene = globeRef.current.scene();
+        if (!scene) return;
+
+        // Create ambient light with intensity π
+        const ambientLight = new THREE.AmbientLight(0xffffff, Math.PI);
+        scene.add(ambientLight);
+        ambientLightRef.current = ambientLight;
+
+        // Create directional light with intensity 0.6π
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.6 * Math.PI);
+        scene.add(directionalLight);
+        directionalLightRef.current = directionalLight;
+
+        lightsInitializedRef.current = true;
+
+        return () => {
+            if (ambientLightRef.current) {
+                scene.remove(ambientLightRef.current);
+                ambientLightRef.current = null;
+            }
+            if (directionalLightRef.current) {
+                scene.remove(directionalLightRef.current);
+                directionalLightRef.current = null;
+            }
+            lightsInitializedRef.current = false;
+        };
+    }, []);
+
+    // Update directional light position based on sun position for current viewTime
+    useEffect(() => {
+        if (!directionalLightRef.current) return;
+
+        const date = new Date(quantizedTime);
+        const sunPosition = getSunPosition(date);
+        directionalLightRef.current.position.copy(sunPosition);
+        directionalLightRef.current.lookAt(0, 0, 0);
+    }, [quantizedTime]);
 
     // Auto-focus logic during playback
     useEffect(() => {
