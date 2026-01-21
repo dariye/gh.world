@@ -143,6 +143,11 @@ export default function Home() {
         </p>
       </div>
 
+      {/* Top Center: Language Filter Pills */}
+      <div className="absolute top-6 left-1/2 -translate-x-1/2 z-50 pointer-events-auto max-w-[calc(100%-320px)] md:max-w-none">
+        <LanguageFilter value={selectedLanguage} onChange={setSelectedLanguage} />
+      </div>
+
       {/* Top Right: Controls */}
       <div className="absolute top-6 right-6 z-50 pointer-events-auto flex items-center gap-2">
         <ModeToggle />
@@ -169,10 +174,7 @@ export default function Home() {
         <div className={`text-white/40 text-[10px] font-mono bg-card/50 backdrop-blur-sm px-2 py-1 rounded ${isCountLoading ? 'animate-pulse' : ''}`}>
           {isCountLoading ? '---' : activeCommitCount.toLocaleString()} ACTIVE COMMITS
         </div>
-        <div className="flex items-center gap-2">
-          <LanguageFilter value={selectedLanguage} onChange={setSelectedLanguage} />
-          <StatsSidebar />
-        </div>
+        <StatsSidebar />
       </div>
 
       {/* Globe */}
