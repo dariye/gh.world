@@ -13,7 +13,8 @@ export default defineSchema({
     language: v.optional(v.union(v.string(), v.null())),
   })
     .index("by_sha", ["sha"])
-    .index("by_timestamp", ["timestamp"]),
+    .index("by_timestamp", ["timestamp"])
+    .index("by_author", ["author"]),
 
   locationCache: defineTable({
     username: v.string(),
