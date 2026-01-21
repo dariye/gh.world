@@ -15,6 +15,7 @@ import LanguageFilter from "@/components/LanguageFilter";
 import CommitDetails from "@/components/CommitDetails";
 import { ModeToggle } from "@/components/ModeToggle";
 import { StatsSidebar } from "@/components/StatsSidebar";
+import TimeDisplay from "@/components/TimeDisplay";
 // import StatsPanel from "@/components/StatsPanel"; // Removed/Deprecated
 
 export default function Home() {
@@ -145,6 +146,14 @@ export default function Home() {
       {/* Top Right: Controls */}
       <div className="absolute top-6 right-6 z-50 pointer-events-auto flex items-center gap-2">
         <ModeToggle />
+      </div>
+
+      {/* Bottom Left: Time Display (above timeline) */}
+      <div className="absolute bottom-32 left-6 z-40 pointer-events-none">
+        <TimeDisplay
+          viewTime={isLive ? Date.now() : startTime + windowSizeHours * 60 * 60 * 1000 / 2}
+          isLive={isLive}
+        />
       </div>
 
       {/* Bottom Right: Status (above timeline) */}
