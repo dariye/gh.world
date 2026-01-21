@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { LANGUAGE_COLORS, SUPPORTED_LANGUAGES } from "@/lib/colors";
 import { Button } from "@/components/ui/button";
 import {
     Command,
@@ -20,18 +21,11 @@ import {
 
 const LANGUAGES = [
     { value: "all", label: "All Languages", color: "#FFFFFF" },
-    { value: "Python", label: "Python", color: "#3572A5" },
-    { value: "JavaScript", label: "JavaScript", color: "#F7DF1E" },
-    { value: "TypeScript", label: "TypeScript", color: "#3178C6" },
-    { value: "Go", label: "Go", color: "#00ADD8" },
-    { value: "Rust", label: "Rust", color: "#DEA584" },
-    { value: "Java", label: "Java", color: "#B07219" },
-    { value: "Ruby", label: "Ruby", color: "#CC342D" },
-    { value: "C++", label: "C++", color: "#F34B7D" },
-    { value: "PHP", label: "PHP", color: "#4F5D95" },
-    { value: "Swift", label: "Swift", color: "#F05138" },
-    { value: "Kotlin", label: "Kotlin", color: "#A97BFF" },
-    { value: "Other", label: "Other", color: "#8B8B8B" },
+    ...SUPPORTED_LANGUAGES.map((lang) => ({
+        value: lang,
+        label: lang,
+        color: LANGUAGE_COLORS[lang],
+    })),
 ];
 
 interface LanguageFilterProps {
