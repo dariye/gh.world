@@ -17,7 +17,9 @@ import CommitDetails from "@/components/CommitDetails";
 import { ModeToggle } from "@/components/ModeToggle";
 import { StatsSidebar } from "@/components/StatsSidebar";
 import TimeDisplay from "@/components/TimeDisplay";
-// import StatsPanel from "@/components/StatsPanel"; // Removed/Deprecated
+import KeyboardShortcutsHelp from "@/components/KeyboardShortcutsHelp";
+import { useKeyboardShortcuts } from "@/lib/useKeyboardShortcuts";
+import { SUPPORTED_LANGUAGES } from "@/lib/colors";
 
 export default function Home() {
   // Timeline state
@@ -35,7 +37,8 @@ export default function Home() {
 
   // Mobile/Drawer state
   const [selectedCommit, setSelectedCommit] = useState<Commit | null>(null);
-  // const [isStatsOpen, setIsStatsOpen] = useState(false);
+  const [isStatsOpen, setIsStatsOpen] = useState(false);
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
 
   // Location quick-jump state
   const [targetLocation, setTargetLocation] = useState<TargetLocation | null>(null);
@@ -138,6 +141,50 @@ export default function Home() {
     setTargetLocation({ lat: location.lat, lng: location.lng });
   }, []);
 
+  // Keyboard shortcut handlers
+  const handleCycleLanguage = useCallback(() => {
+    setSelectedLanguage((current) => {
+      if (current === null) {
+        return SUPPORTED_LANGUAGES[0];
+      }
+      const currentIndex = SUPPORTED_LANGUAGES.indexOf(current as typeof SUPPORTED_LANGUAGES[number]);
+      if (currentIndex === -1 || currentIndex === SUPPORTED_LANGUAGES.length - 1) {
+        return null; // Cycle back to "All"
+      }
+      return SUPPORTED_LANGUAGES[currentIndex + 1];
+    });
+  }, []);
+
+  const handleStepBackward = useCallback(() => {
+    if (isLive) setIsLive(false);
+    setStartTime((prev) => Math.max(minTimeValue, prev - 15 * 60 * 1000)); // Step back 15 minutes
+  }, [isLive, minTimeValue]);
+
+  const handleStepForward = useCallback(() => {
+    if (isLive) setIsLive(false);
+    const limit = Date.now() - windowSizeHours * 60 * 60 * 1000;
+    setStartTime((prev) => Math.min(limit, prev + 15 * 60 * 1000)); // Step forward 15 minutes
+  }, [isLive, windowSizeHours]);
+
+  const handleCloseModal = useCallback(() => {
+    setSelectedCommit(null);
+    setIsStatsOpen(false);
+    setIsHelpOpen(false);
+  }, []);
+
+  // Keyboard shortcuts
+  useKeyboardShortcuts({
+    onTogglePlayPause: () => handlePlayPause(!isPlaying),
+    onToggleLive: () => handleLiveToggle(!isLive),
+    onSetSpeed: setPlaybackSpeed,
+    onStepBackward: handleStepBackward,
+    onStepForward: handleStepForward,
+    onCloseModal: handleCloseModal,
+    onToggleStats: () => setIsStatsOpen((prev) => !prev),
+    onShowHelp: () => setIsHelpOpen(true),
+    onCycleLanguage: handleCycleLanguage,
+    isEnabled: true,
+  });
 
   return (
     <main className="relative w-full h-screen bg-[#060a0f] transition-colors duration-500 overflow-hidden">
@@ -182,7 +229,7 @@ export default function Home() {
         </div>
         <div className="flex items-center gap-2">
           <LanguageFilter value={selectedLanguage} onChange={setSelectedLanguage} />
-          <StatsSidebar />
+          <StatsSidebar isOpen={isStatsOpen} onOpenChange={setIsStatsOpen} />
         </div>
       </div>
 
@@ -220,6 +267,9 @@ export default function Home() {
         isOpen={!!selectedCommit}
         onClose={() => setSelectedCommit(null)}
       />
+
+      {/* Keyboard Shortcuts Help */}
+      <KeyboardShortcutsHelp isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
     </main>
   );
 }

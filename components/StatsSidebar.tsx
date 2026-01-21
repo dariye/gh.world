@@ -137,8 +137,17 @@ const LANGUAGE_COLORS: Record<string, string> = {
     Other: "#6B7280",
 };
 
-export function StatsSidebar() {
-    const [isOpen, setIsOpen] = useState(false);
+interface StatsSidebarProps {
+    isOpen?: boolean;
+    onOpenChange?: (open: boolean) => void;
+}
+
+export function StatsSidebar({ isOpen: controlledIsOpen, onOpenChange }: StatsSidebarProps = {}) {
+    const [internalIsOpen, setInternalIsOpen] = useState(false);
+
+    // Support both controlled and uncontrolled modes
+    const isOpen = controlledIsOpen !== undefined ? controlledIsOpen : internalIsOpen;
+    const setIsOpen = onOpenChange || setInternalIsOpen;
     const currentStats = useQuery(api.stats.getCurrentMonthStats);
     const historicalStats = useQuery(api.stats.getHistoricalStats, { days: 7 });
 
