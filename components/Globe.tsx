@@ -14,6 +14,25 @@ const Globe = dynamic(() => import("react-globe.gl"), {
     ),
 });
 
+// GeoJSON feature type for hexPolygons
+interface GeoJSONFeature {
+    type: string;
+    properties: Record<string, unknown>;
+    geometry: {
+        type: string;
+        coordinates: number[][][] | number[][][][];
+    };
+}
+
+// GitHub contribution square colors (dark theme style)
+const HEX_COLORS = [
+    '#161b22', // level 0 - darkest (ocean-like)
+    '#0e4429', // level 1 - very dark green
+    '#006d32', // level 2 - dark green
+    '#26a641', // level 3 - medium green
+    '#39d353', // level 4 - bright green
+];
+
 // Pre-computed RGB values to avoid regex parsing on every render
 const LANGUAGE_COLORS_RGB: Record<string, [number, number, number]> = {
     Python: [53, 114, 165],
@@ -72,6 +91,32 @@ function GlobeComponent({
 
     const [atmosphereAltitude, setAtmosphereAltitude] = useState(0.15);
     const [atmosphereColor, setAtmosphereColor] = useState("#3a445e");
+    const [countries, setCountries] = useState<GeoJSONFeature[]>([]);
+
+    // Fetch countries GeoJSON for hexed polygons terrain
+    useEffect(() => {
+        fetch('https://unpkg.com/three-globe/example/country-polygons/ne_110m_admin_0_countries.geojson')
+            .then(res => res.json())
+            .then(data => setCountries(data.features || []))
+            .catch(err => console.error('Failed to load countries GeoJSON:', err));
+    }, []);
+
+    // Generate hex color based on country feature (creates varied terrain look)
+    const getHexColor = useMemo(() => {
+        return (obj: object) => {
+            const feature = obj as GeoJSONFeature;
+            // Use a hash of the country name to get consistent but varied colors
+            const name = (feature.properties?.ADMIN as string) || '';
+            let hash = 0;
+            for (let i = 0; i < name.length; i++) {
+                hash = ((hash << 5) - hash) + name.charCodeAt(i);
+                hash = hash & hash;
+            }
+            // Map to contribution levels 1-4 (skip level 0 which is for ocean)
+            const level = (Math.abs(hash) % 4) + 1;
+            return HEX_COLORS[level];
+        };
+    }, []);
 
     // Quantize viewTime to nearest second to reduce update frequency
     // viewTime is always provided by page.tsx, so default to 0 as a safe fallback
@@ -262,8 +307,14 @@ function GlobeComponent({
                 backgroundColor="rgba(0,0,0,0)"
                 width={dimensions.width}
                 height={dimensions.height}
-                globeImageUrl="//unpkg.com/three-globe/example/img/earth-night.jpg"
-                bumpImageUrl="//unpkg.com/three-globe/example/img/earth-topology.png"
+                globeImageUrl="//unpkg.com/three-globe/example/img/earth-dark.jpg"
+
+                // Hexed polygons terrain (GitHub contribution squares style)
+                hexPolygonsData={countries}
+                hexPolygonResolution={3}
+                hexPolygonMargin={0.4}
+                hexPolygonColor={getHexColor}
+                hexPolygonAltitude={0.005}
 
                 // Atmosphere
                 showAtmosphere={true}
