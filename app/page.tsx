@@ -18,6 +18,7 @@ import { StatsSidebar } from "@/components/StatsSidebar";
 import KeyboardShortcutsHelp from "@/components/KeyboardShortcutsHelp";
 import { useKeyboardShortcuts } from "@/lib/useKeyboardShortcuts";
 import { SUPPORTED_LANGUAGES } from "@/lib/colors";
+import ActivityLegend from "@/components/ActivityLegend";
 
 export default function Home() {
   // Timeline state
@@ -203,6 +204,12 @@ export default function Home() {
       <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-50 pointer-events-auto flex items-center gap-2">
         <ModeToggle />
       </div>
+
+      {/* Bottom Left: Activity Legend (above timeline) */}
+      <div className="absolute bottom-28 sm:bottom-32 left-4 sm:left-6 z-40 pointer-events-none">
+        <ActivityLegend />
+      </div>
+
 
       {/* Bottom Right: Status (above timeline) */}
       <div className="absolute bottom-28 sm:bottom-32 right-4 sm:right-6 z-40 pointer-events-auto flex flex-col items-end gap-1.5 sm:gap-2">
