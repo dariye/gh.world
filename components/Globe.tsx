@@ -80,7 +80,7 @@ function GlobeComponent({
     // Single-pass memoized computation for points, rings, and recent unlocated commits
     const { points, rings, recentUnlocated } = useMemo(() => {
         const points: Array<Commit & { lat: number; lng: number; size: number; color: string; label: string }> = [];
-        const rings: Array<{ lat: number; lng: number; maxR: number; propagationSpeed: number; repeatPeriod: number }> = [];
+        const rings: Array<{ lat: number; lng: number; maxR: number; propagationSpeed: number; repeatPeriod: number; language: string | null }> = [];
         const recentUnlocated: Commit[] = [];
 
         for (const commit of commits) {
@@ -104,12 +104,19 @@ function GlobeComponent({
 
                 // Add ring if recent (last 10 mins)
                 if (age < 10 * 60 * 1000) {
+                    // Fresher commits get larger, faster ripples
+                    const freshness = 1 - age / (10 * 60 * 1000); // 1 = brand new, 0 = 10 mins old
+                    const maxR = 3 + freshness * 5; // 3-8 radius based on freshness
+                    const propagationSpeed = 2 + freshness * 3; // 2-5 speed
+                    const repeatPeriod = 1000 + (1 - freshness) * 1500; // 1000-2500ms (fresher = faster repeat)
+
                     rings.push({
                         lat: commit.coordinates[0],
                         lng: commit.coordinates[1],
-                        maxR: 2,
-                        propagationSpeed: 1,
-                        repeatPeriod: 2000
+                        maxR,
+                        propagationSpeed,
+                        repeatPeriod,
+                        language: commit.language ?? null
                     });
                 }
             } else if (age < 30 * 1000) {
@@ -277,9 +284,13 @@ function GlobeComponent({
                 pointAltitude={0.1}
                 pointLabel="label"
 
-                // Rings (Recent activity ripple)
+                // Rings (Recent activity ripple with language colors and fade-out)
                 ringsData={rings}
-                ringColor={() => "#60a5fa"}
+                ringColor={((ring: { language: string | null }) => {
+                    const [r, g, b] = LANGUAGE_COLORS_RGB[ring.language || "Other"] || LANGUAGE_COLORS_RGB["Other"];
+                    // Return a function that fades out as the ring expands (t: 0->1)
+                    return (t: number) => `rgba(${r}, ${g}, ${b}, ${Math.max(0, 1 - t)})`;
+                }) as any}
                 ringMaxRadius="maxR"
                 ringPropagationSpeed="propagationSpeed"
                 ringRepeatPeriod="repeatPeriod"
