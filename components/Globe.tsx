@@ -177,7 +177,7 @@ function GlobeComponent({
         if (typeof window === 'undefined') return undefined;
         // Use level 0 contribution color for ocean/base
         return new THREE.MeshBasicMaterial({
-            color: new THREE.Color(HEX_COLORS[0]),
+            color: new THREE.Color(HEX_COLORS.inactive),
         });
     }, []);
 
