@@ -1,59 +1,40 @@
 import { internalAction } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { Octokit } from "@octokit/rest";
-import { throttling } from "@octokit/plugin-throttling";
+
+// Type for PushEvent payload (event payloads are not fully typed by Octokit)
+interface PushEventPayload {
+    head: string;
+    commits?: Array<{
+        sha: string;
+        message: string;
+    }>;
+}
 
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 
-console.log("GITHUB_TOKEN", GITHUB_TOKEN);
-
-// Configure Octokit with throttling plugin
-const ThrottledOctokit = Octokit.plugin(throttling);
-
-const octokit = new ThrottledOctokit({
+// Configure Octokit (plain instance - no throttling plugin due to Convex setInterval limitation)
+const octokit = new Octokit({
     auth: GITHUB_TOKEN,
     userAgent: "ghworld-app",
-    throttle: {
-        onRateLimit: (retryAfter, options, octokit, retryCount) => {
-            console.warn(
-                `Rate limit hit for ${options.method} ${options.url}. ` +
-                `Retry #${retryCount}, waiting ${retryAfter}s`
-            );
-
-            // Retry first 2 times, then give up
-            if (retryCount < 2) {
-                console.log(`Retrying after ${retryAfter}s...`);
-                return true;
-            }
-
-            console.error("Rate limit retry exhausted, skipping request");
-            return false;
-        },
-        onSecondaryRateLimit: (retryAfter, options, octokit, retryCount) => {
-            console.warn(
-                `Secondary rate limit hit for ${options.method} ${options.url}. ` +
-                `Waiting ${retryAfter}s`
-            );
-
-            // Always retry for secondary rate limits (abuse detection)
-            if (retryCount < 2) {
-                return true;
-            }
-            return false;
-        },
-    },
 });
 
 export const pollPublicEvents = internalAction({
     args: {},
     handler: async (ctx) => {
         try {
-            // Fetch public events using Octokit with automatic throttling
-            const { data: events, headers } = await octokit.rest.activity.listPublicEvents({
+            // Fetch public events using Octokit
+            const response = await octokit.request('GET /events', {
                 per_page: 100,
+                headers: {
+                    accept: 'application/vnd.github+json',
+                    'X-GitHub-Api-Version': '2022-11-28'
+                }
             });
+            const events = response.data;
+            const headers = response.headers;
 
-            // Check Rate Limit (for logging purposes - throttling plugin handles actual limiting)
+            // Check Rate Limit for logging and to decide whether to enrich
             const remaining = headers["x-ratelimit-remaining"];
             const shouldEnrich = remaining ? parseInt(remaining) > 500 : true;
 
@@ -70,7 +51,7 @@ export const pollPublicEvents = internalAction({
                 const repo = event.repo.name;
                 const actor = event.actor.login;
                 const actorUrl = `https://github.com/${actor}`;
-                const payload = event.payload;
+                const payload = event.payload as PushEventPayload;
                 const sha = payload.head;
 
                 if (!sha) continue;
@@ -89,7 +70,7 @@ export const pollPublicEvents = internalAction({
 
                 // 2. Try to get message from payload
                 if (payload.commits && Array.isArray(payload.commits)) {
-                    const commitInfo = payload.commits.find((c: any) => c.sha === sha);
+                    const commitInfo = payload.commits.find((c) => c.sha === sha);
                     if (commitInfo) {
                         message = commitInfo.message.substring(0, 200);
                     }
@@ -103,17 +84,22 @@ export const pollPublicEvents = internalAction({
                         if (cachedLang) {
                             language = cachedLang.language;
                         } else {
-                            // Use Octokit to fetch repo data with automatic throttling
+                            // Use Octokit to fetch repo data
                             const [owner, repoName] = repo.split('/');
-                            const { data: repoData } = await octokit.rest.repos.get({
+                            const response = await octokit.request('GET /repos/{owner}/{repo}', {
                                 owner,
                                 repo: repoName,
+                                headers: {
+                                    accept: 'application/vnd.github+json',
+                                    'X-GitHub-Api-Version': '2022-11-28'
+                                }
                             });
+                            const repoData = response.data;
 
                             language = repoData.language;
                             await ctx.runMutation(internal.commits.cacheRepoLanguage, { repo, language });
                         }
-                    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                        // eslint-disable-next-line @typescript-eslint/no-unused-vars
                     } catch (_e) {
                         // Ignore enrichment errors
                     }
@@ -124,7 +110,7 @@ export const pollPublicEvents = internalAction({
                     author: actor,
                     message,
                     repo,
-                    timestamp: new Date(event.created_at).getTime(),
+                    timestamp: new Date(event.created_at || Date.now()).getTime(),
                     coordinates,
                     authorUrl: actorUrl,
                     language,
@@ -143,7 +129,16 @@ export const pollPublicEvents = internalAction({
                 skippedRateLimit: false,
             } as const;
 
-        } catch (error) {
+        } catch (error: any) {
+            // Handle rate limit errors gracefully
+            if (error?.status === 403 || error?.status === 429) {
+                console.warn(`GitHub API rate limit hit (${error.status}). Skipping this poll cycle.`);
+                return {
+                    newCommitsCount: 0,
+                    totalEventsProcessed: 0,
+                    skippedRateLimit: true,
+                } as const;
+            }
             console.error("Poll failed:", error);
             return {
                 newCommitsCount: 0,
@@ -160,7 +155,13 @@ export const validateGitHubToken = internalAction({
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     handler: async (_ctx) => {
         try {
-            const { data } = await octokit.rest.rateLimit.get();
+            const response = await octokit.request('GET /rate_limit', {
+                headers: {
+                    accept: 'application/vnd.github+json',
+                    'X-GitHub-Api-Version': '2022-11-28'
+                }
+            });
+            const data = response.data;
             const limit = data.resources.core.limit;
             const authenticated = limit === 5000;
 
@@ -190,11 +191,16 @@ async function getCoordinatesForUser(ctx: any, username: string): Promise<number
         return cached.coordinates;
     }
 
-    // Fetch user profile for location using Octokit with automatic throttling
+    // Fetch user profile for location using Octokit
     try {
-        const { data: userData } = await octokit.rest.users.getByUsername({
+        const response = await octokit.request('GET /users/{username}', {
             username,
+            headers: {
+                accept: 'application/vnd.github+json',
+                'X-GitHub-Api-Version': '2022-11-28'
+            }
         });
+        const userData = response.data;
 
         const location = userData.location;
 
