@@ -32,6 +32,7 @@
     "react-dom": "^19.2.1",
     "react-globe.gl": "^2.37.0",
     "recharts": "^2.15.4",
+    "solar-calculator": "^0.3.0",
     "tailwind-merge": "^3.4.0",
     "three": "^0.182.0",
     "vaul": "^1.1.2"
