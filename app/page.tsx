@@ -102,6 +102,13 @@ export default function Home() {
     if (live) setIsPlaying(false);
   }, []);
 
+  const handlePlayPause = useCallback((playing: boolean) => {
+    if (isLive && playing) {
+      setIsLive(false);
+    }
+    setIsPlaying(playing);
+  }, [isLive]);
+
   const handleCloseCommitDetails = useCallback(() => {
     setSelectedCommit(null);
   }, []);
@@ -153,6 +160,7 @@ export default function Home() {
           viewTime={startTime + windowSizeHours * 60 * 60 * 1000 / 2}
           onSelectCommit={handleSelectCommit}
           onViewportChange={setViewport}
+          isPlaying={isPlaying}
         />
       </div>
 
@@ -166,7 +174,7 @@ export default function Home() {
         onLiveToggle={handleLiveToggle}
         windowSizeHours={windowSizeHours}
         isPlaying={isPlaying}
-        onPlayPause={setIsPlaying}
+        onPlayPause={handlePlayPause}
         playbackSpeed={playbackSpeed}
         onPlaybackSpeedChange={setPlaybackSpeed}
       />

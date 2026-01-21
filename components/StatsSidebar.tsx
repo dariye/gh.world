@@ -131,7 +131,7 @@ export function StatsSidebar() {
                         </div>
                         <div className="bg-white/5 p-4 rounded-xl border border-white/10">
                             <div className="text-xs text-white/40 uppercase font-mono mb-1">Geo Rate</div>
-                            <div className="text-2xl font-bold">{(stats?.geolocationRate || 0 * 100).toFixed(1)}%</div>
+                            <div className="text-2xl font-bold">{((stats?.geolocationRate || 0) * 100).toFixed(1)}%</div>
                         </div>
                     </div>
                 </div>

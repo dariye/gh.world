@@ -77,7 +77,6 @@ export default function TimelineControl({
                         <div className="flex gap-2 shrink-0">
                             <Button
                                 onClick={() => onPlayPause(!isPlaying)}
-                                disabled={isLive}
                                 variant="outline"
                                 size="icon"
                                 className={`border-white/10 ${isPlaying && !isLive ? "bg-blue-600/20 text-blue-400 border-blue-500/50" : ""}`}
@@ -86,7 +85,7 @@ export default function TimelineControl({
                             </Button>
 
                             <Button
-                                onClick={() => onLiveToggle(true)}
+                                onClick={() => onLiveToggle(!isLive)}
                                 variant={isLive ? "default" : "outline"}
                                 size="icon"
                                 className={`${isLive

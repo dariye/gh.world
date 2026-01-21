@@ -58,13 +58,15 @@ function GlobeComponent({
     selectedLanguage,
     viewTime,
     onSelectCommit,
-    onViewportChange
+    onViewportChange,
+    isPlaying = false
 }: {
     commits: Commit[],
     selectedLanguage: string | null,
     viewTime?: number,
     onSelectCommit?: (commit: Commit) => void,
-    onViewportChange?: (viewport: Viewport) => void
+    onViewportChange?: (viewport: Viewport) => void,
+    isPlaying?: boolean
 }) {
     const globeRef = useRef<any>(null);
 
@@ -148,6 +150,39 @@ function GlobeComponent({
         }
     }, [recentUnlocated]);
 
+    // Auto-focus logic during playback
+    useEffect(() => {
+        if (!isPlaying || !globeRef.current || points.length === 0) return;
+
+        // Calculate centroid of current visible points
+        let sumLat = 0;
+        let sumLng = 0;
+        let count = 0;
+
+        // Use a subset of points to determine focus (e.g., recent ones)
+        // Since 'points' are already filtered by time window in useMemo, we can use them all or weight recent ones.
+        // Simple centroid of all visible:
+        for (const p of points) {
+            sumLat += p.lat;
+            sumLng += p.lng;
+            count++;
+        }
+
+        if (count > 0) {
+            const targetLat = sumLat / count;
+            const targetLng = sumLng / count;
+
+            // Smoothly move camera to look at activity
+            // We use the current altitude to maintain zoom level
+            const currentPos = globeRef.current.pointOfView();
+            globeRef.current.pointOfView({
+                lat: targetLat,
+                lng: targetLng,
+                altitude: currentPos.altitude
+            }, 1000); // 1 second transition
+        }
+    }, [isPlaying, points]);
+
     const globeContainerRef = useRef<HTMLDivElement>(null);
     const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
 
@@ -173,16 +208,24 @@ function GlobeComponent({
         const updateViewport = () => {
             const { lat, lng, altitude } = globeRef.current.getPointOfView();
 
-            // Heuristic for visible span based on altitude
-            // altitude 0.1 is very close, altitude 2.5 is full globe
-            // We use a safe padding
-            const span = Math.min(180, 45 + altitude * 90);
+            // Geometric Field of View calculation
+            // Visible horizon angle theta = arccos(R / (R + h))
+            // R = Earth Radius (1 in globe units)
+            // h = altitude
+            // FOV span = 2 * theta (converted to degrees)
+            const R = 1;
+            const h = Math.max(0, altitude);
+            const theta = Math.acos(R / (R + h)); // radians
+            const span = (2 * theta * 180) / Math.PI; // degrees
+
+            // Add a safety buffer (1.2x) to ensure we seek enough data
+            const safeSpan = Math.min(180, span * 1.2);
 
             const viewport = {
-                minLat: Math.max(-90, lat - span / 2),
-                maxLat: Math.min(90, lat + span / 2),
-                minLng: lng - span, // Using wider span for longitude
-                maxLng: lng + span,
+                minLat: Math.max(-90, lat - safeSpan / 2),
+                maxLat: Math.min(90, lat + safeSpan / 2),
+                minLng: lng - safeSpan,
+                maxLng: lng + safeSpan,
             };
 
             // Normalize longitude bounds to -180, 180 range
