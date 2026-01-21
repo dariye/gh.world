@@ -51,7 +51,7 @@ export const pollPublicEvents = internalAction({
                 const repo = event.repo.name;
                 const actor = event.actor.login;
                 const actorUrl = `https://github.com/${actor}`;
-                const payload = event.payload as PushEventPayload;
+                const payload = event.payload as unknown as PushEventPayload;
                 const sha = payload.head;
 
                 if (!sha) continue;
