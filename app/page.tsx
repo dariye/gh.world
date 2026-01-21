@@ -4,7 +4,8 @@
 import { useAction, useQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
 import { useState, useEffect, useCallback } from "react";
-import GlobeComponent, { Commit } from "@/components/Globe";
+import GlobeComponent, { Commit, TargetLocation } from "@/components/Globe";
+import LocationQuickJump, { Location } from "@/components/LocationQuickJump";
 import TimelineControl from "@/components/TimelineControl";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -35,6 +36,9 @@ export default function Home() {
   // Mobile/Drawer state
   const [selectedCommit, setSelectedCommit] = useState<Commit | null>(null);
   // const [isStatsOpen, setIsStatsOpen] = useState(false);
+
+  // Location quick-jump state
+  const [targetLocation, setTargetLocation] = useState<TargetLocation | null>(null);
 
   const windowSizeHours = 6;
   const oldestTimestamp = useQuery(api.commits.getOldestCommitTimestamp);
@@ -130,6 +134,10 @@ export default function Home() {
     setSelectedCommit(null);
   }, []);
 
+  const handleJumpToLocation = useCallback((location: Location) => {
+    setTargetLocation({ lat: location.lat, lng: location.lng });
+  }, []);
+
 
   return (
     <main className="relative w-full h-screen bg-[#060a0f] transition-colors duration-500 overflow-hidden">
@@ -141,6 +149,9 @@ export default function Home() {
         <p className="text-white/40 text-xs font-mono lowercase tracking-widest">
           view the world in github commits
         </p>
+        <div className="pointer-events-auto mt-2">
+          <LocationQuickJump onJumpTo={handleJumpToLocation} />
+        </div>
       </div>
 
       {/* Top Right: Controls */}
@@ -184,6 +195,7 @@ export default function Home() {
           onSelectCommit={handleSelectCommit}
           onViewportChange={setViewport}
           isPlaying={isPlaying}
+          targetLocation={targetLocation}
         />
       </div>
 
