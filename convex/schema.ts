@@ -31,6 +31,14 @@ export default defineSchema({
     updatedAt: v.number(),
   }).index("by_month", ["month"]),
 
+  dailyStats: defineTable({
+    date: v.string(), // "2026-01-21"
+    totalCommits: v.number(),
+    uniqueContributors: v.number(),
+    byLanguage: v.record(v.string(), v.number()),
+    updatedAt: v.number(),
+  }).index("by_date", ["date"]),
+
   repoLanguageCache: defineTable({
     repo: v.string(),
     language: v.union(v.string(), v.null()),

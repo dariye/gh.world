@@ -25,6 +25,11 @@ export default function Home() {
 
   const [selectedLanguage, setSelectedLanguage] = useState<string | null>(null);
   const [startTime, setStartTime] = useState(Date.now() - 6 * 60 * 60 * 1000);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Mobile/Drawer state
   const [selectedCommit, setSelectedCommit] = useState<Commit | null>(null);
@@ -35,16 +40,8 @@ export default function Home() {
   const minTimeValue = oldestTimestamp ?? (Date.now() - 24 * 60 * 60 * 1000);
   const maxTimeValue = Date.now();
 
-  // LIVE MODE: Keep time attached to "now"
-  useEffect(() => {
-    if (!isLive) return;
-
-    const interval = setInterval(() => {
-      setStartTime(Date.now() - windowSizeHours * 60 * 60 * 1000);
-    }, 10000);
-
-    return () => clearInterval(interval);
-  }, [isLive, windowSizeHours]);
+  // LIVE MODE: Handled by server-side temporal window in getLiveCommits.
+  // No longer need a client-side interval to advance the window.
 
   // TIMELAPSE PLAYBACK MODE
   useEffect(() => {
@@ -82,14 +79,33 @@ export default function Home() {
     return () => clearTimeout(timer);
   }, [viewport]);
 
-  const commits = useQuery(api.commits.getSpatialCommits, {
+  // Fetch commits based on mode
+  const liveCommits = useQuery(api.commits.getLiveCommits, isLive ? {
+    minLat: debouncedViewport?.minLat,
+    maxLat: debouncedViewport?.maxLat,
+    minLng: debouncedViewport?.minLng,
+    maxLng: debouncedViewport?.maxLng,
+  } : "skip");
+
+  const playbackCommits = useQuery(api.commits.getSpatialCommits, !isLive ? {
     startTime: startTime,
     endTime: startTime + windowSizeHours * 60 * 60 * 1000,
     minLat: debouncedViewport?.minLat,
     maxLat: debouncedViewport?.maxLat,
     minLng: debouncedViewport?.minLng,
     maxLng: debouncedViewport?.maxLng,
-  });
+  } : "skip");
+
+  const commits = isLive ? liveCommits : playbackCommits;
+
+  // Decoupled commit count for the badge
+  const liveCount = useQuery(api.commits.getLiveCommitCount, (mounted && isLive) ? {} : "skip");
+  const playbackCount = useQuery(api.commits.getCommitCount, (mounted && !isLive) ? {
+    startTime: startTime,
+    endTime: startTime + windowSizeHours * 60 * 60 * 1000,
+  } : "skip");
+
+  const activeCommitCount = isLive ? liveCount : playbackCount;
 
 
   // Memoized callbacks to prevent unnecessary child re-renders
@@ -115,26 +131,20 @@ export default function Home() {
 
 
   return (
-    <main className="relative w-full h-screen bg-[#000510] transition-colors duration-500 overflow-hidden text-foreground">
+    <main className="relative w-full h-screen bg-[#0d1117] transition-colors duration-500 overflow-hidden">
       {/* Top Left: Branding */}
       <div className="absolute top-6 left-6 z-50 pointer-events-none flex flex-col gap-1">
-        <h1 className="text-3xl font-bold tracking-tighter text-white">
-          GH<span className="text-blue-500">WORLD</span>
+        <h1 className="text-2xl font-bold tracking-tighter text-white">
+          gh.world
         </h1>
-        <p className="text-white/40 text-xs font-mono uppercase tracking-widest">
-          Real-time Global Commit Stream
+        <p className="text-white/40 text-xs font-mono lowercase tracking-widest">
+          view the world in github commits
         </p>
-      </div>
-
-      {/* Top Center: Language Filter */}
-      <div className="absolute top-6 left-1/2 -translate-x-1/2 z-50 pointer-events-auto">
-        <LanguageFilter value={selectedLanguage} onChange={setSelectedLanguage} />
       </div>
 
       {/* Top Right: Controls */}
       <div className="absolute top-6 right-6 z-50 pointer-events-auto flex items-center gap-2">
         <ModeToggle />
-        <StatsSidebar />
       </div>
 
       {/* Bottom Right: Status (above timeline) */}
@@ -147,8 +157,12 @@ export default function Home() {
           <div className={`w-1.5 h-1.5 rounded-full mr-2 ${isLive ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
           {isLive ? 'CONNECTED' : 'DISCONNECTED'}
         </Badge>
-        <div className="text-white/40 text-[10px] font-mono bg-black/50 backdrop-blur-sm px-2 py-1 rounded">
-          {commits?.length ?? 0} ACTIVE COMMITS
+        <div className="text-white/40 text-[10px] font-mono bg-card/50 backdrop-blur-sm px-2 py-1 rounded">
+          {activeCommitCount?.toLocaleString() ?? 0} ACTIVE COMMITS
+        </div>
+        <div className="flex items-center gap-2">
+          <LanguageFilter value={selectedLanguage} onChange={setSelectedLanguage} />
+          <StatsSidebar />
         </div>
       </div>
 

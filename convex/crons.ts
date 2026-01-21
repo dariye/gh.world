@@ -12,6 +12,13 @@ crons.interval(
 );
 
 crons.interval(
+    "update daily stats",
+    { minutes: 10 },
+    internal.stats.updateDailyStats,
+    {}
+);
+
+crons.interval(
     "poll github events",
     { minutes: 1 },
     (internal as any).actions.pollPublicEvents

@@ -6,7 +6,7 @@ import { useEffect, useRef, useState, useMemo, memo } from "react";
 const Globe = dynamic(() => import("react-globe.gl"), {
     ssr: false,
     loading: () => (
-        <div className="w-full h-full flex items-center justify-center bg-black">
+        <div className="w-full h-full flex items-center justify-center bg-[#0d1117]">
             <div className="text-blue-400 animate-pulse text-lg font-mono">
                 Initializing Global Commits...
             </div>
@@ -256,7 +256,7 @@ function GlobeComponent({
     }, [onViewportChange]);
 
     return (
-        <div ref={globeContainerRef} className="w-full h-full bg-black">
+        <div ref={globeContainerRef} className="w-full h-full bg-[#0d1117]">
             <Globe
                 ref={globeRef}
                 backgroundColor="rgba(0,0,0,0)"

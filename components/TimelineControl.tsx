@@ -49,11 +49,11 @@ export default function TimelineControl({
     });
 
     return (
-        <div className="fixed bottom-0 left-0 right-0 p-6 bg-black/80 backdrop-blur-md border-t border-white/10 z-50">
+        <div className="fixed bottom-0 left-0 right-0 p-6 bg-card/80 backdrop-blur-md border-t border-border z-50">
             {mounted && (
                 <div className="max-w-4xl mx-auto flex flex-col gap-4">
                     {/* Time Info */}
-                    <div className="flex justify-between items-center text-xs font-mono text-white/60">
+                    <div className="flex justify-between items-center text-xs font-mono text-muted-foreground">
                         <span>{timeFormatter.format(startTime)}</span>
                         <div className="flex flex-col items-center">
                             {isLive ? (
@@ -62,7 +62,7 @@ export default function TimelineControl({
                                 </span>
                             ) : (
                                 <div className="flex gap-2">
-                                    <span className={isPlaying ? "text-blue-400 font-bold" : "text-white/40"}>
+                                    <span className={isPlaying ? "text-primary font-bold" : "text-muted-foreground"}>
                                         {isPlaying ? "PLAYING" : "PAUSED"}
                                     </span>
                                 </div>
@@ -79,7 +79,7 @@ export default function TimelineControl({
                                 onClick={() => onPlayPause(!isPlaying)}
                                 variant="outline"
                                 size="icon"
-                                className={`border-white/10 ${isPlaying && !isLive ? "bg-blue-600/20 text-blue-400 border-blue-500/50" : ""}`}
+                                className={`border-border ${isPlaying && !isLive ? "bg-primary/20 text-primary border-primary/50" : ""}`}
                             >
                                 {isPlaying && !isLive ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
                             </Button>
@@ -90,7 +90,7 @@ export default function TimelineControl({
                                 size="icon"
                                 className={`${isLive
                                     ? "bg-green-600 hover:bg-green-700 border-none"
-                                    : "border-white/10 text-green-500 hover:bg-green-950/30 hover:text-green-400"
+                                    : "border-border text-green-500 hover:bg-green-950/30 hover:text-green-400"
                                     }`}
                             >
                                 <Radio className={`w-4 h-4 ${isLive ? "animate-pulse" : ""}`} />
@@ -110,14 +110,14 @@ export default function TimelineControl({
                         />
 
                         {/* Speed Controls */}
-                        <div className="flex gap-1 bg-white/5 rounded-md p-1 shrink-0">
+                        <div className="flex gap-1 bg-muted/50 rounded-md p-1 shrink-0">
                             {speeds.map((s) => (
                                 <button
                                     key={s}
                                     onClick={() => onPlaybackSpeedChange(s)}
                                     className={`px-2 py-1 text-[10px] font-mono rounded transition-colors ${playbackSpeed === s
-                                        ? "bg-white/20 text-white font-bold"
-                                        : "text-white/40 hover:text-white/80"
+                                        ? "bg-accent text-accent-foreground font-bold"
+                                        : "text-muted-foreground hover:text-foreground"
                                         }`}
                                 >
                                     {s}x

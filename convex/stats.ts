@@ -1,4 +1,4 @@
-import { internalMutation, internalQuery, query } from "./_generated/server";
+import { internalMutation, internalQuery, query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 
 /**
@@ -125,5 +125,70 @@ export const updateMonthlyStats = internalMutation({
             `Stats updated for ${month}: ${totalCommits} commits, ${uniqueContributors} contributors`
         );
         return null;
+    },
+});
+
+/**
+ * Get historical daily stats for the last N days.
+ */
+export const getHistoricalStats = query({
+    args: { days: v.optional(v.number()) },
+    handler: async (ctx, args) => {
+        const days = args.days ?? 7;
+        return await ctx.db
+            .query("dailyStats")
+            .order("desc")
+            .take(days);
+    },
+});
+
+/**
+ * Internal mutation to update daily stats.
+ * Called by cron or manually.
+ */
+export const updateDailyStats = internalMutation({
+    args: { date: v.optional(v.string()) },
+    handler: async (ctx, args) => {
+        const now = new Date();
+        const dateStr = args.date || now.toISOString().split("T")[0];
+        const [year, month, day] = dateStr.split("-").map(Number);
+
+        const startOfDay = new Date(year, month - 1, day).getTime();
+        const endOfDay = startOfDay + 24 * 60 * 60 * 1000;
+
+        const commits = await ctx.db
+            .query("commits")
+            .withIndex("by_timestamp", (q) => q.gte("timestamp", startOfDay).lt("timestamp", endOfDay))
+            .collect();
+
+        const totalCommits = commits.length;
+        const uniqueContributors = new Set(commits.map((c) => c.author)).size;
+        const byLanguage: Record<string, number> = {};
+        for (const commit of commits) {
+            const lang = commit.language || "Other";
+            byLanguage[lang] = (byLanguage[lang] || 0) + 1;
+        }
+
+        const existing = await ctx.db
+            .query("dailyStats")
+            .withIndex("by_date", (q) => q.eq("date", dateStr))
+            .first();
+
+        if (existing) {
+            await ctx.db.patch(existing._id, {
+                totalCommits,
+                uniqueContributors,
+                byLanguage,
+                updatedAt: Date.now(),
+            });
+        } else {
+            await ctx.db.insert("dailyStats", {
+                date: dateStr,
+                totalCommits,
+                uniqueContributors,
+                byLanguage,
+                updatedAt: Date.now(),
+            });
+        }
     },
 });
