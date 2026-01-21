@@ -201,13 +201,12 @@ function GlobeComponent({
         };
     }, [activityGrid]);
 
-    // Create solid contribution color material for globe base (ocean = level 0)
-    // This makes the entire globe look like GitHub contribution squares
+    // Create solid color material for globe base (ocean)
     const globeMaterial = useMemo(() => {
         if (typeof window === 'undefined') return undefined;
-        // Use level 0 contribution color for ocean/base
+        // GitHub dark background color for ocean
         return new THREE.MeshBasicMaterial({
-            color: new THREE.Color(HEX_COLORS.inactive),
+            color: new THREE.Color('#0d1117'),
         });
     }, []);
 
