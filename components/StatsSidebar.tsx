@@ -216,14 +216,6 @@ export function StatsSidebar({ isOpen: controlledIsOpen, onOpenChange }: StatsSi
                             <p className="text-4xl font-bold text-zinc-100 tracking-tighter">
                                 <AnimatedCounter value={totalCommits} />
                             </p>
-                            <div className="flex items-center gap-2 mt-4">
-                                <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-[10px] uppercase font-mono tracking-tighter">
-                                    CONNECTED
-                                </Badge>
-                                <span className="text-[10px] text-zinc-600 font-mono uppercase tracking-widest">
-                                    Real-time updates active
-                                </span>
-                            </div>
                         </div>
 
                         {/* ========== LANGUAGE RADIAL ========== */}
