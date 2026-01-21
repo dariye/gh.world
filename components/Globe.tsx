@@ -162,8 +162,11 @@ function GlobeComponent({
         };
     }, []);
 
-    // Create day/night shader material once on mount
-    const globeMaterial = useMemo(() => createDayNightMaterial(), []);
+    // Create day/night shader material once on mount (client-side only)
+    const globeMaterial = useMemo(() => {
+        if (typeof window === 'undefined') return null;
+        return createDayNightMaterial();
+    }, []);
 
     // Update sun direction based on viewTime
     useEffect(() => {
