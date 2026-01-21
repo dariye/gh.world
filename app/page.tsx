@@ -69,10 +69,28 @@ export default function Home() {
     return () => clearInterval(interval);
   }, [isLive, isPlaying, playbackSpeed, minTimeValue, windowSizeHours]);
 
-  const commits = useQuery(api.commits.getRecentCommits, {
+  // Viewport state for progressive disclosure
+  const [viewport, setViewport] = useState<any>(null);
+  const [debouncedViewport, setDebouncedViewport] = useState<any>(null);
+
+  // Debounce viewport updates to avoid hammering the backend
+  useEffect(() => {
+    if (!viewport) return;
+    const timer = setTimeout(() => {
+      setDebouncedViewport(viewport);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [viewport]);
+
+  const commits = useQuery(api.commits.getSpatialCommits, {
     startTime: startTime,
     endTime: startTime + windowSizeHours * 60 * 60 * 1000,
+    minLat: debouncedViewport?.minLat,
+    maxLat: debouncedViewport?.maxLat,
+    minLng: debouncedViewport?.minLng,
+    maxLng: debouncedViewport?.maxLng,
   });
+
 
   // Memoized callbacks to prevent unnecessary child re-renders
   const handleSelectCommit = useCallback((commit: Commit) => {
@@ -134,6 +152,7 @@ export default function Home() {
           selectedLanguage={selectedLanguage}
           viewTime={startTime + windowSizeHours * 60 * 60 * 1000 / 2}
           onSelectCommit={handleSelectCommit}
+          onViewportChange={setViewport}
         />
       </div>
 

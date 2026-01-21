@@ -46,17 +46,28 @@ export interface Commit {
     language?: string | null;
 }
 
+export interface Viewport {
+    minLat: number;
+    maxLat: number;
+    minLng: number;
+    maxLng: number;
+}
+
 function GlobeComponent({
     commits,
     selectedLanguage,
     viewTime,
-    onSelectCommit
+    onSelectCommit,
+    onViewportChange
 }: {
     commits: Commit[],
     selectedLanguage: string | null,
     viewTime?: number,
-    onSelectCommit?: (commit: Commit) => void
+    onSelectCommit?: (commit: Commit) => void,
+    onViewportChange?: (viewport: Viewport) => void
 }) {
+    const globeRef = useRef<any>(null);
+
     const [atmosphereAltitude, setAtmosphereAltitude] = useState(0.15);
     const [atmosphereColor, setAtmosphereColor] = useState("#3a445e");
 
@@ -155,9 +166,56 @@ function GlobeComponent({
         return () => window.removeEventListener("resize", updateDimensions);
     }, []);
 
+    // Viewport tracking logic
+    useEffect(() => {
+        if (!globeRef.current || !onViewportChange) return;
+
+        const updateViewport = () => {
+            const { lat, lng, altitude } = globeRef.current.getPointOfView();
+
+            // Heuristic for visible span based on altitude
+            // altitude 0.1 is very close, altitude 2.5 is full globe
+            // We use a safe padding
+            const span = Math.min(180, 45 + altitude * 90);
+
+            const viewport = {
+                minLat: Math.max(-90, lat - span / 2),
+                maxLat: Math.min(90, lat + span / 2),
+                minLng: lng - span, // Using wider span for longitude
+                maxLng: lng + span,
+            };
+
+            // Normalize longitude bounds to -180, 180 range
+            // (Convex query handles the wrap-around if minLng > maxLng)
+            const normalize = (n: number) => {
+                while (n > 180) n -= 360;
+                while (n < -180) n += 360;
+                return n;
+            };
+
+            onViewportChange({
+                ...viewport,
+                minLng: normalize(viewport.minLng),
+                maxLng: normalize(viewport.maxLng),
+            });
+        };
+
+        // Initial update
+        updateViewport();
+
+        // Listen for changes
+        // react-globe.gl uses OrbitControls, we can access them
+        const controls = globeRef.current.controls();
+        if (controls) {
+            controls.addEventListener('change', updateViewport);
+            return () => controls.removeEventListener('change', updateViewport);
+        }
+    }, [onViewportChange]);
+
     return (
         <div ref={globeContainerRef} className="w-full h-full bg-black">
             <Globe
+                ref={globeRef}
                 backgroundColor="rgba(0,0,0,0)"
                 width={dimensions.width}
                 height={dimensions.height}
