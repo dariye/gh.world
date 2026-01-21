@@ -53,6 +53,9 @@ export interface Viewport {
     maxLng: number;
 }
 
+// Time in ms before auto-rotation resumes after user stops interacting
+const AUTO_ROTATE_RESUME_DELAY = 5000;
+
 function GlobeComponent({
     commits,
     selectedLanguage,
@@ -69,6 +72,7 @@ function GlobeComponent({
     isPlaying?: boolean
 }) {
     const globeRef = useRef<any>(null);
+    const resumeTimerRef = useRef<NodeJS.Timeout | null>(null);
 
     const [atmosphereAltitude, setAtmosphereAltitude] = useState(0.15);
     const [atmosphereColor, setAtmosphereColor] = useState("#1a3050");
@@ -381,6 +385,51 @@ function GlobeComponent({
             return () => controls.removeEventListener('change', updateViewport);
         }
     }, [onViewportChange]);
+
+    // Auto-rotate with pause on user interaction
+    useEffect(() => {
+        if (!globeRef.current) return;
+
+        const controls = globeRef.current.controls();
+        if (!controls) return;
+
+        // Enable auto-rotation by default
+        controls.autoRotate = true;
+        controls.autoRotateSpeed = 0.5;
+
+        const handleInteractionStart = () => {
+            // Clear any pending resume timer
+            if (resumeTimerRef.current) {
+                clearTimeout(resumeTimerRef.current);
+                resumeTimerRef.current = null;
+            }
+            // Pause auto-rotation while user is interacting
+            controls.autoRotate = false;
+        };
+
+        const handleInteractionEnd = () => {
+            // Clear any existing timer
+            if (resumeTimerRef.current) {
+                clearTimeout(resumeTimerRef.current);
+            }
+            // Resume auto-rotation after delay
+            resumeTimerRef.current = setTimeout(() => {
+                controls.autoRotate = true;
+                resumeTimerRef.current = null;
+            }, AUTO_ROTATE_RESUME_DELAY);
+        };
+
+        controls.addEventListener('start', handleInteractionStart);
+        controls.addEventListener('end', handleInteractionEnd);
+
+        return () => {
+            controls.removeEventListener('start', handleInteractionStart);
+            controls.removeEventListener('end', handleInteractionEnd);
+            if (resumeTimerRef.current) {
+                clearTimeout(resumeTimerRef.current);
+            }
+        };
+    }, []);
 
     return (
         <div ref={globeContainerRef} className="w-full h-full bg-[#060a0f]">
