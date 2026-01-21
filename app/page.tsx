@@ -180,7 +180,7 @@ export default function Home() {
         <GlobeComponent
           commits={commits ?? []}
           selectedLanguage={selectedLanguage}
-          viewTime={startTime + windowSizeHours * 60 * 60 * 1000 / 2}
+          viewTime={isLive ? Date.now() : startTime + windowSizeHours * 60 * 60 * 1000 / 2}
           onSelectCommit={handleSelectCommit}
           onViewportChange={setViewport}
           isPlaying={isPlaying}
