@@ -10,6 +10,7 @@ import {
     getContributionColor,
     getContributionAltitude,
 } from "@/lib/colors";
+import { createDayNightMaterial, updateSunDirection } from "./DayNightShader";
 
 const Globe = dynamic(() => import("react-globe.gl"), {
     ssr: false,
@@ -238,15 +239,20 @@ function GlobeComponent({
         };
     }, [activityGrid]);
 
-    // Create solid contribution color material for globe base (ocean = level 0)
-    // This makes the entire globe look like GitHub contribution squares
+    // Create day/night blended material for globe base (ocean areas)
+    // The shader blends earth-day.jpg and earth-night.jpg based on sun position
     const globeMaterial = useMemo(() => {
         if (typeof window === 'undefined') return undefined;
-        // Use level 0 contribution color for ocean/base
-        return new THREE.MeshBasicMaterial({
-            color: new THREE.Color(CONTRIBUTION_COLORS.level0),
-        });
+return createDayNightMaterial();
     }, []);
+
+    // Update sun direction when viewTime changes
+    // This enables real-time day/night visualization that follows the current time
+    useEffect(() => {
+        if (!globeMaterial) return;
+        const viewDate = viewTime ? new Date(viewTime) : new Date();
+        updateSunDirection(globeMaterial, viewDate);
+    }, [globeMaterial, viewTime]);
 
     // Quantize viewTime to nearest second to reduce update frequency
     // viewTime is always provided by page.tsx, so default to 0 as a safe fallback
