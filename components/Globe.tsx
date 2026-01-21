@@ -3,6 +3,13 @@
 import dynamic from "next/dynamic";
 import { useEffect, useRef, useState, useMemo, memo } from "react";
 import * as THREE from "three";
+import {
+    CONTRIBUTION_COLORS,
+    LANGUAGE_COLORS_RGB,
+    getLanguageRgba,
+    getContributionColor,
+    getContributionAltitude,
+} from "@/lib/colors";
 
 const Globe = dynamic(() => import("react-globe.gl"), {
     ssr: false,
@@ -25,38 +32,8 @@ interface GeoJSONFeature {
     };
 }
 
-// GitHub contribution graph colors (exact palette)
-const HEX_COLORS = {
-    inactive: '#ebedf0', // None: off-white
-    level1: '#9be9a8',   // Low activity (1-2 commits)
-    level2: '#40c463',   // Medium activity (3-9 commits)
-    level3: '#30a14e',   // High activity (10-29 commits)
-    level4: '#216e39',   // Very High activity (30+ commits)
-};
-
 // Grid cell size in degrees for activity mapping
 const GRID_CELL_SIZE = 5;
-
-// Pre-computed RGB values to avoid regex parsing on every render
-const LANGUAGE_COLORS_RGB: Record<string, [number, number, number]> = {
-    Python: [53, 114, 165],
-    JavaScript: [247, 223, 30],
-    TypeScript: [49, 120, 198],
-    Go: [0, 173, 216],
-    Rust: [222, 165, 132],
-    Java: [176, 114, 25],
-    Ruby: [204, 52, 45],
-    "C++": [243, 75, 125],
-    PHP: [79, 93, 149],
-    Swift: [240, 81, 56],
-    Kotlin: [169, 123, 255],
-    Other: [139, 139, 139]
-};
-
-function getLanguageColor(language: string | null, opacity: number) {
-    const [r, g, b] = LANGUAGE_COLORS_RGB[language || "Other"] || LANGUAGE_COLORS_RGB["Other"];
-    return `rgba(${r}, ${g}, ${b}, ${opacity})`;
-}
 
 export interface Commit {
     _id: string;
@@ -147,7 +124,7 @@ function GlobeComponent({
             const feature = obj as GeoJSONFeature;
             const point = getCountryPoint(feature);
 
-            if (!point) return HEX_COLORS.inactive; // Gray fallback
+            if (!point) return CONTRIBUTION_COLORS.level0;
 
             const [lat, lng] = point;
             const latCell = Math.floor(lat / GRID_CELL_SIZE);
@@ -162,12 +139,7 @@ function GlobeComponent({
                 }
             }
 
-            // Gray for no activity, green shades for activity (like GitHub contribution graph)
-            if (activity === 0) return HEX_COLORS.inactive;
-            if (activity < 3) return HEX_COLORS.level1;
-            if (activity < 10) return HEX_COLORS.level2;
-            if (activity < 30) return HEX_COLORS.level3;
-            return HEX_COLORS.level4;
+            return getContributionColor(activity);
         };
     }, [activityGrid]);
 
@@ -177,7 +149,7 @@ function GlobeComponent({
             const feature = obj as GeoJSONFeature;
             const point = getCountryPoint(feature);
 
-            if (!point) return 0.005; // Flat baseline
+            if (!point) return getContributionAltitude(0);
 
             const [lat, lng] = point;
             const latCell = Math.floor(lat / GRID_CELL_SIZE);
@@ -192,21 +164,17 @@ function GlobeComponent({
                 }
             }
 
-            // Dynamic altitude based on activity level
-            if (activity === 0) return 0.005;  // Flat baseline
-            if (activity < 3) return 0.01;     // Low activity (1-2)
-            if (activity < 10) return 0.02;    // Medium activity (3-9)
-            if (activity < 30) return 0.035;   // High activity (10-29)
-            return 0.05;                        // Very high activity (30+)
+            return getContributionAltitude(activity);
         };
     }, [activityGrid]);
 
-    // Create solid color material for globe base (ocean)
+    // Create solid contribution color material for globe base (ocean = level 0)
+    // This makes the entire globe look like GitHub contribution squares
     const globeMaterial = useMemo(() => {
         if (typeof window === 'undefined') return undefined;
-        // GitHub dark background color for ocean
+        // Use level 0 contribution color for ocean/base
         return new THREE.MeshBasicMaterial({
-            color: new THREE.Color('#0d1117'),
+            color: new THREE.Color(CONTRIBUTION_COLORS.level0),
         });
     }, []);
 
@@ -237,7 +205,7 @@ function GlobeComponent({
                     lat: commit.coordinates[0],
                     lng: commit.coordinates[1],
                     size,
-                    color: getLanguageColor(commit.language ?? null, opacity),
+                    color: getLanguageRgba(commit.language ?? null, opacity),
                     label: `${commit.author}: ${commit.message}`,
                     ...commit,
                 });
@@ -283,7 +251,7 @@ function GlobeComponent({
             // "Shiver" effect: Pulse atmosphere altitude
             setAtmosphereAltitude(0.25);
             // Tint atmosphere with dominant language color
-            setAtmosphereColor(getLanguageColor(dominantLang, 0.6));
+            setAtmosphereColor(getLanguageRgba(dominantLang, 0.6));
 
             // Reset after animation
             const timer = setTimeout(() => {
@@ -414,7 +382,7 @@ function GlobeComponent({
                 // Hexed polygons terrain (GitHub contribution squares style)
                 hexPolygonsData={countries}
                 hexPolygonResolution={3}
-                hexPolygonMargin={0.15}
+                hexPolygonMargin={0.4}
                 hexPolygonColor={getHexColor}
                 hexPolygonAltitude={getHexAltitude}
 
