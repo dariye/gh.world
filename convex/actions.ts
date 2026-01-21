@@ -54,20 +54,29 @@ export const pollPublicEvents = action({
 
                 if (coordinates) {
                     let message = "Commit activity";
+                    let language = null;
 
-                    // 2. Enrich if safe to do so
+                    // 2. Try to get message from payload
+                    if (payload.commits && Array.isArray(payload.commits)) {
+                        const commitInfo = payload.commits.find((c: any) => c.sha === sha);
+                        if (commitInfo) {
+                            message = commitInfo.message.substring(0, 200);
+                        }
+                    }
+
+                    // 3. Enrich for Language if safe to do so
                     if (shouldEnrich) {
                         try {
-                            const commitResponse = await fetch(`https://api.github.com/repos/${repo}/commits/${sha}`, {
+                            const repoResponse = await fetch(`https://api.github.com/repos/${repo}`, {
                                 headers: {
                                     ...(GITHUB_TOKEN ? { Authorization: `token ${GITHUB_TOKEN}` } : {}),
                                     "User-Agent": "ghworld-app",
                                 },
                             });
 
-                            if (commitResponse.ok) {
-                                const commitData = await commitResponse.json();
-                                message = commitData.commit.message.substring(0, 200);
+                            if (repoResponse.ok) {
+                                const repoData = await repoResponse.json();
+                                language = repoData.language;
                             }
                         } catch (e) {
                             // Ignore enrichment errors
@@ -82,6 +91,7 @@ export const pollPublicEvents = action({
                         timestamp: new Date(event.created_at).getTime(),
                         coordinates,
                         authorUrl: actorUrl,
+                        language,
                     });
                 }
             }

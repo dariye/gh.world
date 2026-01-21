@@ -14,6 +14,33 @@ const Globe = dynamic(() => import("react-globe.gl"), {
     ),
 });
 
+const LANGUAGE_COLORS: Record<string, string> = {
+    Python: "#3572A5",
+    JavaScript: "#F7DF1E",
+    TypeScript: "#3178C6",
+    Go: "#00ADD8",
+    Rust: "#DEA584",
+    Java: "#B07219",
+    Ruby: "#CC342D",
+    "C++": "#F34B7D",
+    PHP: "#4F5D95",
+    Swift: "#F05138",
+    Kotlin: "#A97BFF",
+    Other: "#8B8B8B"
+};
+
+function getLanguageColor(language: string | null, opacity: number) {
+    const hex = LANGUAGE_COLORS[language || "Other"] || LANGUAGE_COLORS["Other"];
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    const rgb = result ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16)
+    } : { r: 139, g: 139, b: 139 };
+
+    return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${opacity})`;
+}
+
 interface Commit {
     _id: string;
     author: string;
@@ -22,6 +49,7 @@ interface Commit {
     timestamp: number;
     coordinates: number[];
     authorUrl: string;
+    language: string | null;
 }
 
 interface GlobeComponentProps {
@@ -43,7 +71,7 @@ export default function GlobeComponent({ commits }: GlobeComponentProps) {
                 lat: commit.coordinates[0],
                 lng: commit.coordinates[1],
                 size: 0.15,
-                color: `rgba(96, 165, 250, ${opacity})`, // Blue with fading opacity
+                color: getLanguageColor(commit.language, opacity),
                 label: `${commit.author}: ${commit.message}`,
                 ...commit,
             };

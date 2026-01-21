@@ -36,6 +36,7 @@ export const insertCommits = internalMutation({
             timestamp: v.number(),
             coordinates: v.array(v.number()),
             authorUrl: v.string(),
+            language: v.union(v.string(), v.null()),
         })),
     },
     handler: async (ctx, args) => {
