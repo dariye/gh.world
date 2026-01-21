@@ -415,7 +415,7 @@ function GlobeComponent({
                 // Hexed polygons terrain (GitHub contribution squares style)
                 hexPolygonsData={countries}
                 hexPolygonResolution={3}
-                hexPolygonMargin={0.4}
+                hexPolygonMargin={0.15}
                 hexPolygonColor={getHexColor}
                 hexPolygonAltitude={getHexAltitude}
 
