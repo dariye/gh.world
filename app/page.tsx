@@ -17,6 +17,7 @@ import CommitDetails from "@/components/CommitDetails";
 import { ModeToggle } from "@/components/ModeToggle";
 import { StatsSidebar } from "@/components/StatsSidebar";
 import TimeDisplay from "@/components/TimeDisplay";
+import ActivityLegend from "@/components/ActivityLegend";
 // import StatsPanel from "@/components/StatsPanel"; // Removed/Deprecated
 
 export default function Home() {
@@ -159,12 +160,13 @@ export default function Home() {
         <ModeToggle />
       </div>
 
-      {/* Bottom Left: Time Display (above timeline) */}
-      <div className="absolute bottom-32 left-6 z-40 pointer-events-none">
+      {/* Bottom Left: Time Display and Legend (above timeline) */}
+      <div className="absolute bottom-32 left-6 z-40 pointer-events-none flex flex-col gap-2">
         <TimeDisplay
           viewTime={isLive ? Date.now() : startTime + windowSizeHours * 60 * 60 * 1000 / 2}
           isLive={isLive}
         />
+        <ActivityLegend />
       </div>
 
       {/* Bottom Right: Status (above timeline) */}
