@@ -1,10 +1,6 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
-// The schema is entirely optional.
-// You can delete this file (schema.ts) and the
-// app will continue to work.
-// The schema provides more precise TypeScript types.
 export default defineSchema({
   commits: defineTable({
     sha: v.string(),
@@ -25,4 +21,19 @@ export default defineSchema({
     coordinates: v.array(v.number()),
     cachedAt: v.number(),
   }).index("by_username", ["username"]),
+
+  monthlyStats: defineTable({
+    month: v.string(), // "2026-01"
+    totalCommits: v.number(),
+    uniqueContributors: v.number(),
+    byLanguage: v.record(v.string(), v.number()),
+    geolocationRate: v.number(),
+    updatedAt: v.number(),
+  }).index("by_month", ["month"]),
+
+  repoLanguageCache: defineTable({
+    repo: v.string(),
+    language: v.union(v.string(), v.null()),
+    cachedAt: v.number(),
+  }).index("by_repo", ["repo"]),
 });

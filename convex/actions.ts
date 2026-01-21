@@ -1,10 +1,10 @@
-import { action } from "./_generated/server";
+import { action, internalAction } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
 
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 
-export const pollPublicEvents = action({
+export const pollPublicEvents = internalAction({
     args: {},
     handler: async (ctx) => {
         try {
@@ -50,23 +50,34 @@ export const pollPublicEvents = action({
                 if (!sha) continue;
 
                 // 1. Get coordinates (Real or Fallback)
-                const coordinates = await getCoordinatesForUser(ctx, actor);
+                let coordinates = await getCoordinatesForUser(ctx, actor);
+                const hasLocation = !!coordinates;
 
-                if (coordinates) {
-                    let message = "Commit activity";
-                    let language = null;
+                // If no location, we still store it for "atmospheric pulses"
+                // Schema requires array of numbers, so we use empty array for no location
+                if (!coordinates) {
+                    coordinates = [];
+                }
 
-                    // 2. Try to get message from payload
-                    if (payload.commits && Array.isArray(payload.commits)) {
-                        const commitInfo = payload.commits.find((c: any) => c.sha === sha);
-                        if (commitInfo) {
-                            message = commitInfo.message.substring(0, 200);
-                        }
+                let message = "Commit activity";
+                let language = null;
+
+                // 2. Try to get message from payload
+                if (payload.commits && Array.isArray(payload.commits)) {
+                    const commitInfo = payload.commits.find((c: any) => c.sha === sha);
+                    if (commitInfo) {
+                        message = commitInfo.message.substring(0, 200);
                     }
+                }
 
-                    // 3. Enrich for Language if safe to do so
-                    if (shouldEnrich) {
-                        try {
+                // 3. Enrich for Language if safe to do so
+                // We enrich even if no location, so we can color the pulse correctly
+                if (shouldEnrich) {
+                    try {
+                        const cachedLang: any = await ctx.runQuery(internal.commits.getCachedRepoLanguage, { repo });
+                        if (cachedLang) {
+                            language = cachedLang.language;
+                        } else {
                             const repoResponse = await fetch(`https://api.github.com/repos/${repo}`, {
                                 headers: {
                                     ...(GITHUB_TOKEN ? { Authorization: `token ${GITHUB_TOKEN}` } : {}),
@@ -77,23 +88,24 @@ export const pollPublicEvents = action({
                             if (repoResponse.ok) {
                                 const repoData = await repoResponse.json();
                                 language = repoData.language;
+                                await ctx.runMutation(internal.commits.cacheRepoLanguage, { repo, language });
                             }
-                        } catch (e) {
-                            // Ignore enrichment errors
                         }
+                    } catch (e) {
+                        // Ignore enrichment errors
                     }
-
-                    newCommits.push({
-                        sha,
-                        author: actor,
-                        message,
-                        repo,
-                        timestamp: new Date(event.created_at).getTime(),
-                        coordinates,
-                        authorUrl: actorUrl,
-                        language,
-                    });
                 }
+
+                newCommits.push({
+                    sha,
+                    author: actor,
+                    message,
+                    repo,
+                    timestamp: new Date(event.created_at).getTime(),
+                    coordinates,
+                    authorUrl: actorUrl,
+                    language,
+                });
             }
 
             if (newCommits.length > 0) {
@@ -105,11 +117,17 @@ export const pollPublicEvents = action({
             return {
                 newCommitsCount: newCommits.length,
                 totalEventsProcessed: events.length,
-            };
+                skippedRateLimit: false,
+            } as const;
 
         } catch (error) {
             console.error("Poll failed:", error);
-            return { error: String(error) };
+            return {
+                newCommitsCount: 0,
+                totalEventsProcessed: 0,
+                error: String(error),
+                skippedRateLimit: false,
+            } as const;
         }
     },
 });
