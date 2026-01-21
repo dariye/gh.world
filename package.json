@@ -32,6 +32,7 @@
     "react-dom": "^19.2.1",
     "react-globe.gl": "^2.37.0",
     "recharts": "^2.15.4",
+    "suncalc": "^1.9.0",
     "tailwind-merge": "^3.4.0",
     "three": "^0.182.0",
     "vaul": "^1.1.2"
@@ -42,6 +43,8 @@
     "@types/node": "^24.10.4",
     "@types/react": "^19.2.6",
     "@types/react-dom": "^19.2.3",
+    "@types/suncalc": "^1.9.2",
+    "@types/three": "^0.182.0",
     "eslint": "^9.39.1",
     "eslint-config-next": "16.0.10",
     "npm-run-all2": "^8.0.4",
