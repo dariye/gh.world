@@ -76,6 +76,10 @@ export interface Viewport {
     maxLng: number;
 }
 
+// Auto-rotate settings
+const AUTO_ROTATE_SPEED = 0.3; // Degrees per frame (slow rotation)
+const AUTO_ROTATE_RESUME_DELAY = 5000; // Resume after 5 seconds of inactivity
+
 function GlobeComponent({
     commits,
     selectedLanguage,
@@ -92,6 +96,7 @@ function GlobeComponent({
     isPlaying?: boolean
 }) {
     const globeRef = useRef<any>(null);
+    const autoRotateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     const [atmosphereAltitude, setAtmosphereAltitude] = useState(0.15);
     const [atmosphereColor, setAtmosphereColor] = useState("#1a3050");
@@ -347,6 +352,55 @@ function GlobeComponent({
         updateDimensions(); // Set initial dimensions
         window.addEventListener("resize", updateDimensions);
         return () => window.removeEventListener("resize", updateDimensions);
+    }, []);
+
+    // Auto-rotate with pause on interaction
+    useEffect(() => {
+        if (!globeRef.current) return;
+
+        const controls = globeRef.current.controls();
+        if (!controls) return;
+
+        // Enable auto-rotate
+        controls.autoRotate = true;
+        controls.autoRotateSpeed = AUTO_ROTATE_SPEED;
+
+        // Handler to pause auto-rotate on user interaction
+        const handleInteractionStart = () => {
+            controls.autoRotate = false;
+
+            // Clear any existing resume timeout
+            if (autoRotateTimeoutRef.current) {
+                clearTimeout(autoRotateTimeoutRef.current);
+            }
+        };
+
+        // Handler to schedule auto-rotate resume after interaction ends
+        const handleInteractionEnd = () => {
+            // Clear any existing timeout
+            if (autoRotateTimeoutRef.current) {
+                clearTimeout(autoRotateTimeoutRef.current);
+            }
+
+            // Schedule resume after delay
+            autoRotateTimeoutRef.current = setTimeout(() => {
+                if (controls) {
+                    controls.autoRotate = true;
+                }
+            }, AUTO_ROTATE_RESUME_DELAY);
+        };
+
+        // Listen for interaction events
+        controls.addEventListener('start', handleInteractionStart);
+        controls.addEventListener('end', handleInteractionEnd);
+
+        return () => {
+            controls.removeEventListener('start', handleInteractionStart);
+            controls.removeEventListener('end', handleInteractionEnd);
+            if (autoRotateTimeoutRef.current) {
+                clearTimeout(autoRotateTimeoutRef.current);
+            }
+        };
     }, []);
 
     // Viewport tracking logic
