@@ -201,6 +201,64 @@ function GlobeComponent({
         };
     }, [activityGrid]);
 
+    // Generate hex tooltip label showing country name and commit activity
+    const getHexLabel = useMemo(() => {
+        return (obj: object) => {
+            const feature = obj as GeoJSONFeature;
+            const props = feature.properties;
+            const countryName = (props?.NAME || props?.ADMIN || props?.name || 'Unknown') as string;
+            const point = getCountryPoint(feature);
+
+            if (!point) {
+                return `<div style="padding: 8px; background: rgba(0,0,0,0.8); border-radius: 4px; font-family: monospace;">
+                    <div style="font-weight: bold; color: #fff;">${countryName}</div>
+                    <div style="color: #888; font-size: 12px;">No activity data</div>
+                </div>`;
+            }
+
+            const [lat, lng] = point;
+            const latCell = Math.floor(lat / GRID_CELL_SIZE);
+            const lngCell = Math.floor(lng / GRID_CELL_SIZE);
+
+            // Check 3x3 grid around the point to capture nearby activity
+            let activity = 0;
+            for (let dLat = -1; dLat <= 1; dLat++) {
+                for (let dLng = -1; dLng <= 1; dLng++) {
+                    const cellKey = `${latCell + dLat},${lngCell + dLng}`;
+                    activity += activityGrid.get(cellKey) || 0;
+                }
+            }
+
+            // Determine activity level label and color
+            let levelLabel: string;
+            let levelColor: string;
+            if (activity === 0) {
+                levelLabel = 'No activity';
+                levelColor = HEX_COLORS.inactive;
+            } else if (activity < 3) {
+                levelLabel = 'Low';
+                levelColor = HEX_COLORS.level1;
+            } else if (activity < 10) {
+                levelLabel = 'Medium';
+                levelColor = HEX_COLORS.level2;
+            } else if (activity < 30) {
+                levelLabel = 'High';
+                levelColor = HEX_COLORS.level3;
+            } else {
+                levelLabel = 'Very High';
+                levelColor = HEX_COLORS.level4;
+            }
+
+            const commitText = activity === 1 ? '1 commit' : `${activity} commits`;
+
+            return `<div style="padding: 8px; background: rgba(0,0,0,0.85); border-radius: 4px; font-family: monospace; border-left: 3px solid ${levelColor};">
+                <div style="font-weight: bold; color: #fff; margin-bottom: 4px;">${countryName}</div>
+                <div style="color: ${levelColor}; font-size: 12px;">${commitText}</div>
+                <div style="color: #888; font-size: 11px; margin-top: 2px;">${levelLabel} activity</div>
+            </div>`;
+        };
+    }, [activityGrid]);
+
     // Create solid contribution color material for globe base (ocean = level 0)
     // This makes the entire globe look like GitHub contribution squares
     const globeMaterial = useMemo(() => {
@@ -418,6 +476,7 @@ function GlobeComponent({
                 hexPolygonMargin={0.4}
                 hexPolygonColor={getHexColor}
                 hexPolygonAltitude={getHexAltitude}
+                hexPolygonLabel={getHexLabel}
 
                 // Atmosphere
                 showAtmosphere={true}
