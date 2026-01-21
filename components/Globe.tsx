@@ -132,6 +132,44 @@ const autoRotateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
         return null;
     };
 
+    // Calculate centroid of a polygon ring for click-to-zoom
+    const getPolygonCentroid = (feature: GeoJSONFeature): [number, number] | null => {
+        const coords = feature.geometry.coordinates;
+        if (!coords || !coords.length) return null;
+
+        let ring: number[][] | null = null;
+        if (feature.geometry.type === 'Polygon') {
+            ring = coords[0] as number[][];
+        } else if (feature.geometry.type === 'MultiPolygon') {
+            // Use the first (usually largest) polygon
+            const polygon = coords[0] as number[][][];
+            ring = polygon[0];
+        }
+
+        if (!ring || ring.length === 0) return null;
+
+        // Calculate centroid as average of all points
+        let sumLng = 0;
+        let sumLat = 0;
+        for (const point of ring) {
+            sumLng += point[0];
+            sumLat += point[1];
+        }
+        return [sumLat / ring.length, sumLng / ring.length]; // [lat, lng]
+    };
+
+    // Click-to-zoom handler for hex polygon tiles
+    const handleHexPolygonClick = (polygon: object) => {
+        const feature = polygon as GeoJSONFeature;
+        const centroid = getPolygonCentroid(feature);
+
+        if (centroid && globeRef.current) {
+            const [lat, lng] = centroid;
+            // Zoom in to altitude 0.8 (closer view) with smooth animation
+            globeRef.current.pointOfView({ lat, lng, altitude: 0.8 }, 1000);
+        }
+    };
+
     // Generate hex color based on commit activity (GitHub contribution graph style)
     const getHexColor = useMemo(() => {
         return (obj: object) => {
@@ -633,7 +671,8 @@ return createDayNightMaterial();
                 hexPolygonMargin={0.4}
                 hexPolygonColor={getHexColor}
                 hexPolygonAltitude={getHexAltitude}
-                hexPolygonLabel={getHexLabel}
+hexPolygonLabel={getHexLabel}
+                onHexPolygonClick={handleHexPolygonClick}
 
                 // Atmosphere
                 showAtmosphere={true}
