@@ -28,14 +28,14 @@ interface LocationQuickJumpProps {
 
 export default function LocationQuickJump({ onJumpTo }: LocationQuickJumpProps) {
   return (
-    <div className="flex items-center gap-1 flex-wrap">
-      <MapPin className="w-3 h-3 text-white/40 mr-1" />
-      {LOCATIONS.map((location) => (
+    <div className="flex items-center gap-0.5 sm:gap-1 flex-wrap max-w-[200px] sm:max-w-none">
+      <MapPin className="w-3 h-3 text-white/40 mr-0.5 sm:mr-1 shrink-0" />
+      {LOCATIONS.map((location, index) => (
         <Button
           key={location.name}
           variant="ghost"
           size="sm"
-          className="h-6 px-2 text-[10px] font-mono text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+          className={`h-5 sm:h-6 px-1.5 sm:px-2 text-[9px] sm:text-[10px] font-mono text-white/60 hover:text-white hover:bg-white/10 transition-colors ${index >= 5 ? 'hidden sm:inline-flex' : ''}`}
           onClick={() => onJumpTo(location)}
         >
           {location.shortName || location.name}

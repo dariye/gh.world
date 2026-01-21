@@ -185,9 +185,9 @@ export function StatsSidebar({ isOpen: controlledIsOpen, onOpenChange }: StatsSi
                 <Button
                     variant="outline"
                     size="icon"
-                    className="bg-zinc-900/40 border-zinc-800 hover:bg-zinc-800 hover:border-zinc-700 backdrop-blur-sm transition-all"
+                    className="h-8 w-8 sm:h-9 sm:w-9 bg-zinc-900/40 border-zinc-800 hover:bg-zinc-800 hover:border-zinc-700 backdrop-blur-sm transition-all"
                 >
-                    <BarChart3 className="h-4 w-4" />
+                    <BarChart3 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 </Button>
             </SheetTrigger>
 

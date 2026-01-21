@@ -187,11 +187,11 @@ export default function Home() {
   return (
     <main className="relative w-full h-screen bg-[#060a0f] transition-colors duration-500 overflow-hidden">
       {/* Top Left: Branding */}
-      <div className="absolute top-6 left-6 z-50 pointer-events-none flex flex-col gap-1">
-        <h1 className="text-2xl font-bold tracking-tighter text-white">
+      <div className="absolute top-4 left-4 sm:top-6 sm:left-6 z-50 pointer-events-none flex flex-col gap-1">
+        <h1 className="text-xl sm:text-2xl font-bold tracking-tighter text-white">
           gh.world
         </h1>
-        <p className="text-white/40 text-xs font-mono lowercase tracking-widest">
+        <p className="text-white/40 text-[10px] sm:text-xs font-mono lowercase tracking-widest">
           view the world in github commits
         </p>
         <div className="pointer-events-auto mt-2">
@@ -200,16 +200,16 @@ export default function Home() {
       </div>
 
       {/* Top Right: Controls */}
-      <div className="absolute top-6 right-6 z-50 pointer-events-auto flex items-center gap-2">
+      <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-50 pointer-events-auto flex items-center gap-2">
         <ModeToggle />
       </div>
 
       {/* Bottom Right: Status (above timeline) */}
-      <div className="absolute bottom-32 right-6 z-40 pointer-events-auto flex flex-col items-end gap-2">
-        <div className={`text-white/40 text-[10px] font-mono bg-card/50 backdrop-blur-sm px-2 py-1 rounded ${isCountLoading ? 'animate-pulse' : ''}`}>
+      <div className="absolute bottom-28 sm:bottom-32 right-4 sm:right-6 z-40 pointer-events-auto flex flex-col items-end gap-1.5 sm:gap-2">
+        <div className={`text-white/40 text-[9px] sm:text-[10px] font-mono bg-card/50 backdrop-blur-sm px-1.5 sm:px-2 py-0.5 sm:py-1 rounded ${isCountLoading ? 'animate-pulse' : ''}`}>
           {isCountLoading ? '---' : activeCommitCount.toLocaleString()} ACTIVE COMMITS
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2">
           <LanguageFilter value={selectedLanguage} onChange={setSelectedLanguage} />
           <StatsSidebar isOpen={isStatsOpen} onOpenChange={setIsStatsOpen} />
         </div>
