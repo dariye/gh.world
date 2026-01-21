@@ -349,6 +349,19 @@ function GlobeComponent({
         return () => window.removeEventListener("resize", updateDimensions);
     }, []);
 
+    // Set up orbit controls with damping for smooth camera movement
+    useEffect(() => {
+        if (!globeRef.current) return;
+
+        const controls = globeRef.current.controls();
+        if (controls) {
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.1;
+            controls.rotateSpeed = 0.5;
+            controls.zoomSpeed = 0.8;
+        }
+    }, []);
+
     // Viewport tracking logic
     useEffect(() => {
         if (!globeRef.current || !onViewportChange) return;
