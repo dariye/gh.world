@@ -13,6 +13,7 @@ export const seedCommits = mutation({
                 timestamp: Date.now(),
                 coordinates: [37.7749, -122.4194],
                 authorUrl: "https://github.com/paul",
+                language: "TypeScript",
             },
             {
                 sha: "dummy2",
@@ -22,6 +23,7 @@ export const seedCommits = mutation({
                 timestamp: Date.now() - 3600000,
                 coordinates: [51.5074, -0.1278],
                 authorUrl: "https://github.com/alice",
+                language: "Python",
             },
             {
                 sha: "dummy3",
@@ -31,6 +33,7 @@ export const seedCommits = mutation({
                 timestamp: Date.now() - 7200000,
                 coordinates: [35.6762, 139.6503],
                 authorUrl: "https://github.com/bob",
+                language: "Java",
             },
         ];
 

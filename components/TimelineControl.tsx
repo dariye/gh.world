@@ -1,6 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Slider } from "@/components/ui/slider";
+import { Play, Pause, Radio } from "lucide-react";
 
 interface TimelineControlProps {
     minTime: number;
@@ -20,50 +23,107 @@ export default function TimelineControl({
     isLive,
     onLiveToggle,
     windowSizeHours,
-}: TimelineControlProps) {
+    isPlaying,
+    onPlayPause,
+    playbackSpeed,
+    onPlaybackSpeedChange,
+}: TimelineControlProps & {
+    isPlaying: boolean;
+    onPlayPause: (playing: boolean) => void;
+    playbackSpeed: number;
+    onPlaybackSpeedChange: (speed: number) => void;
+}) {
     const [mounted, setMounted] = useState(false);
     const windowMs = windowSizeHours * 60 * 60 * 1000;
     const endTime = startTime + windowMs;
+    const sliderMax = Math.max(minTime, maxTime - windowMs);
 
     useEffect(() => {
         setMounted(true);
     }, []);
 
+    const speeds = [1, 2, 4, 8];
+    const timeFormatter = new Intl.DateTimeFormat(undefined, {
+        timeStyle: "medium",
+        dateStyle: "short",
+    });
+
     return (
-        <div className="fixed bottom-0 left-0 right-0 p-6 bg-black/60 backdrop-blur-md border-t border-white/10 z-50 min-h-[140px]">
+        <div className="fixed bottom-0 left-0 right-0 p-6 bg-card/80 backdrop-blur-md border-t border-border z-50">
             {mounted && (
                 <div className="max-w-4xl mx-auto flex flex-col gap-4">
-                    <div className="flex justify-between items-center text-xs font-mono text-white/60 min-h-[1.5rem]">
-                        <span>{new Date(startTime).toLocaleString()}</span>
+                    {/* Time Info */}
+                    <div className="flex justify-between items-center text-xs font-mono text-muted-foreground">
+                        <span>{timeFormatter.format(startTime)}</span>
                         <div className="flex flex-col items-center">
-                            <span className="text-blue-400 font-bold">{isLive ? "LIVE STREAMING" : "PAUSED"}</span>
-                            <span>Window: {windowSizeHours}h</span>
+                            {isLive ? (
+                                <span className="text-green-400 font-bold animate-pulse flex items-center gap-1">
+                                    <Radio className="w-3 h-3" /> LIVE
+                                </span>
+                            ) : (
+                                <div className="flex gap-2">
+                                    <span className={isPlaying ? "text-primary font-bold" : "text-muted-foreground"}>
+                                        {isPlaying ? "PLAYING" : "PAUSED"}
+                                    </span>
+                                </div>
+                            )}
                         </div>
-                        <span>{new Date(endTime).toLocaleString()}</span>
+                        <span>{timeFormatter.format(endTime)}</span>
                     </div>
 
+                    {/* Controls Row */}
                     <div className="flex gap-4 items-center">
-                        <button
-                            onClick={() => onLiveToggle(!isLive)}
-                            className={`px-4 py-2 rounded-full text-xs font-bold transition-all ${isLive
-                                ? "bg-blue-600 text-white shadow-lg shadow-blue-500/20"
-                                : "bg-white/10 text-white/60 hover:bg-white/20"
-                                }`}
-                        >
-                            {isLive ? "PAUSE" : "GO LIVE"}
-                        </button>
+                        {/* Play/Pause & Live Controls */}
+                        <div className="flex gap-2 shrink-0">
+                            <Button
+                                onClick={() => onPlayPause(!isPlaying)}
+                                variant="outline"
+                                size="icon"
+                                className={`border-border ${isPlaying && !isLive ? "bg-primary/20 text-primary border-primary/50" : ""}`}
+                            >
+                                {isPlaying && !isLive ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                            </Button>
 
-                        <input
-                            type="range"
+                            <Button
+                                onClick={() => onLiveToggle(!isLive)}
+                                variant={isLive ? "default" : "outline"}
+                                size="icon"
+                                className={`${isLive
+                                    ? "bg-green-600 hover:bg-green-700 border-none"
+                                    : "border-border text-green-500 hover:bg-green-950/30 hover:text-green-400"
+                                    }`}
+                            >
+                                <Radio className={`w-4 h-4 ${isLive ? "animate-pulse" : ""}`} />
+                            </Button>
+                        </div>
+
+                        {/* Scrubber */}
+                        <Slider
                             min={minTime}
-                            max={Math.max(minTime, maxTime - windowMs)}
-                            value={startTime}
-                            onChange={(e) => {
-                                onStartTimeChange(Number(e.target.value));
-                                if (isLive) onLiveToggle(false);
+                            max={sliderMax}
+                            value={[startTime]}
+                            onValueChange={(value) => {
+                                onStartTimeChange(value[0]);
+                                if (isLive) onLiveToggle(false); // dragging scrubber exits live mode
                             }}
-                            className="flex-1 h-2 bg-white/10 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                            className="flex-1"
                         />
+
+                        {/* Speed Controls */}
+                        <div className="flex gap-1 bg-muted/50 rounded-md p-1 shrink-0">
+                            {speeds.map((s) => (
+                                <button
+                                    key={s}
+                                    onClick={() => onPlaybackSpeedChange(s)}
+                                    className={`px-2 py-1 text-[10px] font-mono rounded transition-colors ${playbackSpeed === s
+                                        ? "bg-accent text-accent-foreground font-bold"
+                                        : "text-muted-foreground hover:text-foreground"
+                                        }`}
+                                >
+                                    {s}x
+                                </button>
+                            ))}
+                        </div>
                     </div>
                 </div>
             )}

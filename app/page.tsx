@@ -1,101 +1,204 @@
 "use client";
 
+
 import { useAction, useQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
-import { useState, useEffect, useMemo } from "react";
-import GlobeComponent from "@/components/Globe";
+import { useState, useEffect, useCallback } from "react";
+import GlobeComponent, { Commit } from "@/components/Globe";
 import TimelineControl from "@/components/TimelineControl";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+// import { Info } from "lucide-react";
+
+import LanguageFilter from "@/components/LanguageFilter";
+import CommitDetails from "@/components/CommitDetails";
+import { ModeToggle } from "@/components/ModeToggle";
+import { StatsSidebar } from "@/components/StatsSidebar";
+// import StatsPanel from "@/components/StatsPanel"; // Removed/Deprecated
 
 export default function Home() {
+  // Timeline state
   const [isLive, setIsLive] = useState(true);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [playbackSpeed, setPlaybackSpeed] = useState(1);
+
+  const [selectedLanguage, setSelectedLanguage] = useState<string | null>(null);
   const [startTime, setStartTime] = useState(Date.now() - 6 * 60 * 60 * 1000);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Mobile/Drawer state
+  const [selectedCommit, setSelectedCommit] = useState<Commit | null>(null);
+  // const [isStatsOpen, setIsStatsOpen] = useState(false);
+
   const windowSizeHours = 6;
-  const pollAction = useAction(api.actions.pollPublicEvents);
+  const oldestTimestamp = useQuery(api.commits.getOldestCommitTimestamp);
+  const minTimeValue = oldestTimestamp ?? (Date.now() - 24 * 60 * 60 * 1000);
+  const maxTimeValue = Date.now();
 
-  // Poll for new commits every 30 seconds
+  // LIVE MODE: Handled by server-side temporal window in getLiveCommits.
+  // No longer need a client-side interval to advance the window.
+
+  // TIMELAPSE PLAYBACK MODE
   useEffect(() => {
-    const poll = async () => {
-      try {
-        console.log("Polling for new commits...");
-        const result = await pollAction();
-        console.log(`Poll complete. New commits: ${result.newCommitsCount}`);
-      } catch (error) {
-        console.error("Polling error:", error);
-      }
-    };
-
-    poll(); // Initial poll
-    const interval = setInterval(poll, 30000);
-    return () => clearInterval(interval);
-  }, [pollAction]);
-
-  // If live, keep the startTime moving
-  useEffect(() => {
-    if (!isLive) return;
+    if (isLive || !isPlaying) return;
 
     const interval = setInterval(() => {
-      setStartTime(Date.now() - windowSizeHours * 60 * 60 * 1000);
-    }, 10000); // Update every 10s to keep it "fresh"
+      setStartTime(prev => {
+        // Base speed 1x = 6 hours in 2 minutes (180x acceleration)
+        // 50ms interval * 180 * speed
+        const delta = 50 * 180 * playbackSpeed;
+        const next = prev + delta;
+
+        // Loop if we hit end (minus window size)
+        const limit = Date.now() - (windowSizeHours * 60 * 60 * 1000);
+        if (next >= limit) {
+          return minTimeValue; // Loop back to start
+        }
+        return next;
+      });
+    }, 50);
 
     return () => clearInterval(interval);
-  }, [isLive, windowSizeHours]);
+  }, [isLive, isPlaying, playbackSpeed, minTimeValue, windowSizeHours]);
 
-  const commits = useQuery(api.commits.getRecentCommits, {
+  // Viewport state for progressive disclosure
+  const [viewport, setViewport] = useState<any>(null);
+  const [debouncedViewport, setDebouncedViewport] = useState<any>(null);
+
+  // Debounce viewport updates to avoid hammering the backend
+  useEffect(() => {
+    if (!viewport) return;
+    const timer = setTimeout(() => {
+      setDebouncedViewport(viewport);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [viewport]);
+
+  // Fetch commits based on mode
+  const liveCommits = useQuery(api.commits.getLiveCommits, isLive ? {
+    minLat: debouncedViewport?.minLat,
+    maxLat: debouncedViewport?.maxLat,
+    minLng: debouncedViewport?.minLng,
+    maxLng: debouncedViewport?.maxLng,
+  } : "skip");
+
+  const playbackCommits = useQuery(api.commits.getSpatialCommits, !isLive ? {
     startTime: startTime,
     endTime: startTime + windowSizeHours * 60 * 60 * 1000,
-  });
+    minLat: debouncedViewport?.minLat,
+    maxLat: debouncedViewport?.maxLat,
+    minLng: debouncedViewport?.minLng,
+    maxLng: debouncedViewport?.maxLng,
+  } : "skip");
 
-  const oldestTimestamp = useQuery(api.commits.getOldestCommitTimestamp);
-  const minTime = oldestTimestamp ?? (Date.now() - 24 * 60 * 60 * 1000);
-  const maxTime = Date.now();
+  const commits = isLive ? liveCommits : playbackCommits;
+
+  // Decoupled commit count for the badge
+  const liveCount = useQuery(api.commits.getLiveCommitCount, (mounted && isLive) ? {} : "skip");
+  const playbackCount = useQuery(api.commits.getCommitCount, (mounted && !isLive) ? {
+    startTime: startTime,
+    endTime: startTime + windowSizeHours * 60 * 60 * 1000,
+  } : "skip");
+
+  const activeCommitCount = isLive ? liveCount : playbackCount;
+
+
+  // Memoized callbacks to prevent unnecessary child re-renders
+  const handleSelectCommit = useCallback((commit: Commit) => {
+    setSelectedCommit(commit);
+  }, []);
+
+  const handleLiveToggle = useCallback((live: boolean) => {
+    setIsLive(live);
+    if (live) setIsPlaying(false);
+  }, []);
+
+  const handlePlayPause = useCallback((playing: boolean) => {
+    if (isLive && playing) {
+      setIsLive(false);
+    }
+    setIsPlaying(playing);
+  }, [isLive]);
+
+  const handleCloseCommitDetails = useCallback(() => {
+    setSelectedCommit(null);
+  }, []);
+
 
   return (
-    <main className="relative w-full h-screen bg-[#000510] overflow-hidden">
-      {/* Header Info */}
-      <div className="absolute top-6 left-6 z-50 pointer-events-none">
-        <h1 className="text-3xl font-bold text-white tracking-tighter">
-          GH<span className="text-blue-500">WORLD</span>
+    <main className="relative w-full h-screen bg-[#0d1117] transition-colors duration-500 overflow-hidden">
+      {/* Top Left: Branding */}
+      <div className="absolute top-6 left-6 z-50 pointer-events-none flex flex-col gap-1">
+        <h1 className="text-2xl font-bold tracking-tighter text-white">
+          gh.world
         </h1>
-        <p className="text-white/40 text-xs font-mono uppercase tracking-widest mt-1">
-          Real-time Global Commit Stream
+        <p className="text-white/40 text-xs font-mono lowercase tracking-widest">
+          view the world in github commits
         </p>
+      </div>
 
-        <div className="mt-8 flex flex-col gap-2">
-          <div className="flex items-center gap-2">
-            <div className={`w-2 h-2 rounded-full ${isLive ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
-            <span className="text-white/60 text-xs font-mono">
-              {isLive ? 'SYSTEM ONLINE' : 'TIMELINE PAUSED'}
-            </span>
-          </div>
-          <div className="text-white/40 text-[10px] font-mono">
-            ACTIVE COMMITS IN WINDOW: {commits?.length ?? 0}
-          </div>
+      {/* Top Right: Controls */}
+      <div className="absolute top-6 right-6 z-50 pointer-events-auto flex items-center gap-2">
+        <ModeToggle />
+      </div>
+
+      {/* Bottom Right: Status (above timeline) */}
+      <div className="absolute bottom-32 right-6 z-40 pointer-events-auto flex flex-col items-end gap-2">
+        <Badge
+          variant="outline"
+          className={`w-fit cursor-pointer border-white/10 ${isLive ? 'bg-green-500/10 text-green-400 hover:bg-green-500/20' : 'bg-red-500/10 text-red-400'}`}
+          onClick={() => handleLiveToggle(!isLive)}
+        >
+          <div className={`w-1.5 h-1.5 rounded-full mr-2 ${isLive ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
+          {isLive ? 'CONNECTED' : 'DISCONNECTED'}
+        </Badge>
+        <div className="text-white/40 text-[10px] font-mono bg-card/50 backdrop-blur-sm px-2 py-1 rounded">
+          {activeCommitCount?.toLocaleString() ?? 0} ACTIVE COMMITS
+        </div>
+        <div className="flex items-center gap-2">
+          <LanguageFilter value={selectedLanguage} onChange={setSelectedLanguage} />
+          <StatsSidebar />
         </div>
       </div>
 
       {/* Globe */}
       <div className="absolute inset-0 z-0">
-        <GlobeComponent commits={commits ?? []} />
+        <GlobeComponent
+          commits={commits ?? []}
+          selectedLanguage={selectedLanguage}
+          viewTime={startTime + windowSizeHours * 60 * 60 * 1000 / 2}
+          onSelectCommit={handleSelectCommit}
+          onViewportChange={setViewport}
+          isPlaying={isPlaying}
+        />
       </div>
 
       {/* Timeline Control */}
       <TimelineControl
-        minTime={minTime}
-        maxTime={maxTime}
+        minTime={minTimeValue}
+        maxTime={maxTimeValue}
         startTime={startTime}
         onStartTimeChange={setStartTime}
         isLive={isLive}
-        onLiveToggle={setIsLive}
+        onLiveToggle={handleLiveToggle}
         windowSizeHours={windowSizeHours}
+        isPlaying={isPlaying}
+        onPlayPause={handlePlayPause}
+        playbackSpeed={playbackSpeed}
+        onPlaybackSpeedChange={setPlaybackSpeed}
       />
 
-      {/* Legend / Overlay */}
-      <div className="absolute top-6 right-6 z-50 bg-black/40 backdrop-blur-md p-4 rounded-xl border border-white/5 text-[10px] font-mono text-white/40 max-w-[200px]">
-        <p>This visualization shows public commits across all of GitHub in real-time.</p>
-        <p className="mt-2 text-blue-400 group cursor-help transition-colors hover:text-blue-300">
-          Click any point to view the author's GitHub profile.
-        </p>
-      </div>
+      {/* Mobile Drawers */}
+      <CommitDetails
+        commit={selectedCommit}
+        isOpen={!!selectedCommit}
+        onClose={() => setSelectedCommit(null)}
+      />
     </main>
   );
 }
