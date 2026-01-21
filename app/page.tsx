@@ -132,7 +132,7 @@ export default function Home() {
 
 
   return (
-    <main className="relative w-full h-screen bg-[#0d1117] transition-colors duration-500 overflow-hidden">
+    <main className="relative w-full h-screen bg-[#060a0f] transition-colors duration-500 overflow-hidden">
       {/* Top Left: Branding */}
       <div className="absolute top-6 left-6 z-50 pointer-events-none flex flex-col gap-1">
         <h1 className="text-2xl font-bold tracking-tighter text-white">

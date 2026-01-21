@@ -1,0 +1,10 @@
+Improve ripples with language colors and dynamic sizing
+
+- Rings now use language-specific colors matching commit points
+- Added fade-out effect as rings expand
+- Dynamic ring properties based on commit freshness:
+  - maxR: 3-8 (fresher = larger)
+  - propagationSpeed: 2-5 (fresher = faster)
+  - repeatPeriod: 1000-2500ms (fresher = faster repeat)
+
+Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>

@@ -1,0 +1,40 @@
+[core]
+	repositoryformatversion = 0
+	filemode = true
+	bare = true
+	ignorecase = true
+	precomposeunicode = true
+	sparseCheckout = true
+[remote "origin"]
+	url = git@github.com:dariye/gh.world.git
+	fetch = +refs/heads/*:refs/remotes/origin/*
+[branch "polecat/rust/ghworld-y78@mko3ucgb"]
+	remote = origin
+	merge = refs/heads/main
+[branch "polecat/rust/ghworld-avi@mko48hyz"]
+	remote = origin
+	merge = refs/heads/main
+[branch "polecat/chrome/ghworld-chk@mko4a5nv"]
+	remote = origin
+	merge = refs/heads/main
+[branch "polecat/nitro/ghworld-wch@mko4btf2"]
+	remote = origin
+	merge = refs/heads/main
+[branch "polecat/chrome/hq-o6g@mko5eb09"]
+	remote = origin
+	merge = refs/heads/main
+[branch "polecat/guzzle/hq-v0r@mko5fyun"]
+	remote = origin
+	merge = refs/heads/polecat/guzzle/hq-v0r@mko5fyun
+[branch "polecat/witness/hq-1q9@mko6efo0"]
+	remote = origin
+	merge = refs/heads/main
+[branch "polecat/shiny/hq-14m@mko6g3o7"]
+	remote = origin
+	merge = refs/heads/main
+[branch "polecat/witness/hq-4vq@mko6ph6s"]
+	remote = origin
+	merge = refs/heads/main
+[branch "polecat/shiny/hq-kgd@mko6r528"]
+	remote = origin
+	merge = refs/heads/main

@@ -1,0 +1,10 @@
+7a7a2912f174802d5d9ee90db1756e209c9dbffe ce7242c6f28b0b104fa24d2582f718de0f5094b0 paul dariye <paul@dariye.com> 1769005383 +0100	merge polecat/rust/ghworld-y78@mko3ucgb: Merge made by the 'ort' strategy.
+ce7242c6f28b0b104fa24d2582f718de0f5094b0 33e06ff0932609ba0cc640c45decdff315d300db paul dariye <paul@dariye.com> 1769007046 +0100	commit (merge): Merge day/night texture blending shader (ghworld-avi)
+33e06ff0932609ba0cc640c45decdff315d300db 1274a12f6387e487efd7a211bbb6a31ef55e42ca paul dariye <paul@dariye.com> 1769007112 +0100	commit (merge): Merge directional sun lighting (ghworld-chk)
+1274a12f6387e487efd7a211bbb6a31ef55e42ca ea145b1a9eecd437b7d70433c4de111856c59b39 paul dariye <paul@dariye.com> 1769007118 +0100	merge polecat/nitro/ghworld-wch@mko4btf2: Merge made by the 'ort' strategy.
+ea145b1a9eecd437b7d70433c4de111856c59b39 7875e3e630b336ba9ced1372b0afc66434933c59 paul dariye <paul@dariye.com> 1769008212 +0100	merge polecat/guzzle/hq-v0r@mko5fyun: Merge made by the 'ort' strategy.
+7875e3e630b336ba9ced1372b0afc66434933c59 1fa1e83ebc25b324ee3dc36acb3fc6989f54728c paul dariye <paul@dariye.com> 1769008259 +0100	commit (merge): Merge hexed polygons terrain (hq-o6g)
+1fa1e83ebc25b324ee3dc36acb3fc6989f54728c 3b74b2cf13d0077373f12eccf86a921eb62c623a paul dariye <paul@dariye.com> 1769008870 +0100	commit: Fix SSR: guard createDayNightMaterial for client-side only
+3b74b2cf13d0077373f12eccf86a921eb62c623a bd4154a9eabe0802b66b882a833490d7b6ffed8f paul dariye <paul@dariye.com> 1769011110 +0100	merge polecat/shiny/hq-14m@mko6g3o7: Fast-forward (no commit created; -m option ignored)
+bd4154a9eabe0802b66b882a833490d7b6ffed8f e15e2a74ef3fb040ad2a2126dcd3a9a86c36053a paul dariye <paul@dariye.com> 1769011117 +0100	merge polecat/witness/hq-1q9@mko6efo0: Merge made by the 'ort' strategy.
+e15e2a74ef3fb040ad2a2126dcd3a9a86c36053a 700ee186a613ac517e3980a48e5bd10b17103743 paul dariye <paul@dariye.com> 1769011155 +0100	commit (merge): Merge gray/green activity coloring (hq-4vq)

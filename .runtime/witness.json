@@ -1,0 +1,16 @@
+{
+  "rig_name": "ghworld",
+  "state": "running",
+  "started_at": "2026-01-21T16:01:05.687286+01:00",
+  "monitored_polecats": [
+    "chrome",
+    "guzzle",
+    "nitro",
+    "rust"
+  ],
+  "config": {
+    "max_workers": 0,
+    "spawn_delay_ms": 0,
+    "auto_spawn": false
+  }
+}
