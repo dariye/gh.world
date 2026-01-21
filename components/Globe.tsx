@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useEffect, useRef, useState, useMemo, memo } from "react";
+import { createDayNightMaterial, updateSunDirection } from "./DayNightShader";
 
 const Globe = dynamic(() => import("react-globe.gl"), {
     ssr: false,
@@ -72,6 +73,16 @@ function GlobeComponent({
 
     const [atmosphereAltitude, setAtmosphereAltitude] = useState(0.15);
     const [atmosphereColor, setAtmosphereColor] = useState("#3a445e");
+
+    // Create day/night shader material once on mount
+    const globeMaterial = useMemo(() => createDayNightMaterial(), []);
+
+    // Update sun direction based on viewTime
+    useEffect(() => {
+        if (globeMaterial && viewTime !== undefined) {
+            updateSunDirection(globeMaterial, new Date(viewTime));
+        }
+    }, [globeMaterial, viewTime]);
 
     // Quantize viewTime to nearest second to reduce update frequency
     // viewTime is always provided by page.tsx, so default to 0 as a safe fallback
@@ -262,7 +273,7 @@ function GlobeComponent({
                 backgroundColor="rgba(0,0,0,0)"
                 width={dimensions.width}
                 height={dimensions.height}
-                globeImageUrl="//unpkg.com/three-globe/example/img/earth-night.jpg"
+                globeMaterial={globeMaterial}
                 bumpImageUrl="//unpkg.com/three-globe/example/img/earth-topology.png"
 
                 // Atmosphere
