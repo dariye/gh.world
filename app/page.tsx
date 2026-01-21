@@ -235,6 +235,14 @@ export default function Home() {
         />
       </div>
 
+      {/* Vignette Overlay */}
+      <div
+        className="absolute inset-0 z-10 pointer-events-none"
+        style={{
+          background: 'radial-gradient(ellipse at center, transparent 40%, rgba(6, 10, 15, 0.4) 70%, rgba(6, 10, 15, 0.8) 100%)',
+        }}
+      />
+
       {/* Timeline Control */}
       <TimelineControl
         minTime={minTimeValue}
