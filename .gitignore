@@ -44,3 +44,7 @@ next-env.d.ts
 .beads/.local_version
 .beads/last-touched
 .beads/metadata.json
+
+# Gas Town runtime
+.repo.git/
+.runtime/

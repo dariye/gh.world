@@ -1,5 +1,0 @@
-1c3d4fd88ed9d0933d066a9cdbc5a27fa2bf75bc 79b2bf8578c92c7ba8de4e523e86d42d0a08c358 paul dariye <paul@dariye.com> 1769006519 +0100	commit: Add time display overlay for day/night cycle
-79b2bf8578c92c7ba8de4e523e86d42d0a08c358 e968da7383d75a60795a47701bb28d8ad67b1315 paul dariye <paul@dariye.com> 1769006577 +0100	commit: Add beads redirect and AGENTS.md
-e968da7383d75a60795a47701bb28d8ad67b1315 91f6963f9b80a8f3367c1c73c8ccb61beafef3ac paul dariye <paul@dariye.com> 1769006788 +0100	commit: Fix beads redirect path
-91f6963f9b80a8f3367c1c73c8ccb61beafef3ac 0054091bf7828da2bd61de9f0cc51dbede51b076 paul dariye <paul@dariye.com> 1769006828 +0100	commit: Use absolute path in beads redirect
-0054091bf7828da2bd61de9f0cc51dbede51b076 fd1cc60092f620825c7dc7b43c74f90939e3d47f paul dariye <paul@dariye.com> 1769006855 +0100	commit: Fix beads redirect relative path
