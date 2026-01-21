@@ -107,7 +107,7 @@ export default function Home() {
   } : "skip");
 
   const activeCommitCount = isLive ? liveCount : playbackCount;
-
+  const isCountLoading = activeCommitCount === undefined;
 
   // Memoized callbacks to prevent unnecessary child re-renders
   const handleSelectCommit = useCallback((commit: Commit) => {
@@ -166,8 +166,8 @@ export default function Home() {
           <div className={`w-1.5 h-1.5 rounded-full mr-2 ${isLive ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
           {isLive ? 'CONNECTED' : 'DISCONNECTED'}
         </Badge>
-        <div className="text-white/40 text-[10px] font-mono bg-card/50 backdrop-blur-sm px-2 py-1 rounded">
-          {activeCommitCount?.toLocaleString() ?? 0} ACTIVE COMMITS
+        <div className={`text-white/40 text-[10px] font-mono bg-card/50 backdrop-blur-sm px-2 py-1 rounded ${isCountLoading ? 'animate-pulse' : ''}`}>
+          {isCountLoading ? '---' : activeCommitCount.toLocaleString()} ACTIVE COMMITS
         </div>
         <div className="flex items-center gap-2">
           <LanguageFilter value={selectedLanguage} onChange={setSelectedLanguage} />
