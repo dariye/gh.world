@@ -56,20 +56,28 @@ export interface Viewport {
 // Time in ms before auto-rotation resumes after user stops interacting
 const AUTO_ROTATE_RESUME_DELAY = 5000;
 
+export interface TargetLocation {
+    lat: number;
+    lng: number;
+    altitude?: number;
+}
+
 function GlobeComponent({
     commits,
     selectedLanguage,
     viewTime,
     onSelectCommit,
     onViewportChange,
-    isPlaying = false
+    isPlaying = false,
+    targetLocation
 }: {
     commits: Commit[],
     selectedLanguage: string | null,
     viewTime?: number,
     onSelectCommit?: (commit: Commit) => void,
     onViewportChange?: (viewport: Viewport) => void,
-    isPlaying?: boolean
+    isPlaying?: boolean,
+    targetLocation?: TargetLocation | null
 }) {
     const globeRef = useRef<any>(null);
     const resumeTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -301,6 +309,18 @@ function GlobeComponent({
             }, 1000); // 1 second transition
         }
     }, [isPlaying, points]);
+
+    // Quick-jump to target location
+    useEffect(() => {
+        if (!targetLocation || !globeRef.current) return;
+
+        const altitude = targetLocation.altitude ?? 1.5; // Default zoom level for city view
+        globeRef.current.pointOfView({
+            lat: targetLocation.lat,
+            lng: targetLocation.lng,
+            altitude
+        }, 800); // 800ms smooth transition
+    }, [targetLocation]);
 
     const globeContainerRef = useRef<HTMLDivElement>(null);
     const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
