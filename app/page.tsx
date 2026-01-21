@@ -160,7 +160,7 @@ export default function Home() {
       </div>
 
       {/* Bottom Left: Time Display (above timeline) */}
-      <div className="absolute bottom-32 left-6 z-40 pointer-events-none">
+      <div className="absolute bottom-20 left-6 z-40 pointer-events-none">
         <TimeDisplay
           viewTime={isLive ? Date.now() : startTime + windowSizeHours * 60 * 60 * 1000 / 2}
           isLive={isLive}
@@ -168,7 +168,7 @@ export default function Home() {
       </div>
 
       {/* Bottom Right: Status (above timeline) */}
-      <div className="absolute bottom-32 right-6 z-40 pointer-events-auto flex flex-col items-end gap-2">
+      <div className="absolute bottom-20 right-6 z-40 pointer-events-auto flex flex-col items-end gap-2">
         <Badge
           variant="outline"
           className={`w-fit cursor-pointer border-white/10 ${isLive ? 'bg-green-500/10 text-green-400 hover:bg-green-500/20' : 'bg-red-500/10 text-red-400'}`}
