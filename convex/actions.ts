@@ -1,41 +1,67 @@
-import { action, internalAction } from "./_generated/server";
+import { internalAction } from "./_generated/server";
 import { internal } from "./_generated/api";
-import { v } from "convex/values";
+import { Octokit } from "@octokit/rest";
+import { throttling } from "@octokit/plugin-throttling";
 
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
+
+console.log("GITHUB_TOKEN", GITHUB_TOKEN);
+
+// Configure Octokit with throttling plugin
+const ThrottledOctokit = Octokit.plugin(throttling);
+
+const octokit = new ThrottledOctokit({
+    auth: GITHUB_TOKEN,
+    userAgent: "ghworld-app",
+    throttle: {
+        onRateLimit: (retryAfter, options, octokit, retryCount) => {
+            console.warn(
+                `Rate limit hit for ${options.method} ${options.url}. ` +
+                `Retry #${retryCount}, waiting ${retryAfter}s`
+            );
+
+            // Retry first 2 times, then give up
+            if (retryCount < 2) {
+                console.log(`Retrying after ${retryAfter}s...`);
+                return true;
+            }
+
+            console.error("Rate limit retry exhausted, skipping request");
+            return false;
+        },
+        onSecondaryRateLimit: (retryAfter, options, octokit, retryCount) => {
+            console.warn(
+                `Secondary rate limit hit for ${options.method} ${options.url}. ` +
+                `Waiting ${retryAfter}s`
+            );
+
+            // Always retry for secondary rate limits (abuse detection)
+            if (retryCount < 2) {
+                return true;
+            }
+            return false;
+        },
+    },
+});
 
 export const pollPublicEvents = internalAction({
     args: {},
     handler: async (ctx) => {
         try {
-            const response = await fetch("https://api.github.com/events?per_page=100", {
-                headers: {
-                    ...(GITHUB_TOKEN ? { Authorization: `token ${GITHUB_TOKEN}` } : {}),
-                    "User-Agent": "ghworld-app",
-                },
+            // Fetch public events using Octokit with automatic throttling
+            const { data: events, headers } = await octokit.rest.activity.listPublicEvents({
+                per_page: 100,
             });
 
-            if (!response.ok) {
-                if (response.status === 403 || response.status === 429) {
-                    console.warn("GitHub API rate limit exceeded. Skipping poll.");
-                    return { newCommitsCount: 0, totalEventsProcessed: 0, skippedRateLimit: true };
-                }
-                const error = await response.text();
-                throw new Error(`GitHub API error: ${response.status} ${error}`);
-            }
-
-            // Check Rate Limit
-            const remaining = response.headers.get("x-ratelimit-remaining");
+            // Check Rate Limit (for logging purposes - throttling plugin handles actual limiting)
+            const remaining = headers["x-ratelimit-remaining"];
             const shouldEnrich = remaining ? parseInt(remaining) > 500 : true;
 
             if (remaining && parseInt(remaining) < 1000) {
                 console.warn(`GitHub API Rate Limit low: ${remaining} remaining.`);
             }
-
-            const events = await response.json();
             const newCommits = [];
             let processedPushEvents = 0;
-            let skippedNoLocation = 0;
 
             for (const event of events) {
                 if (event.type !== "PushEvent") continue;
@@ -51,7 +77,6 @@ export const pollPublicEvents = internalAction({
 
                 // 1. Get coordinates (Real or Fallback)
                 let coordinates = await getCoordinatesForUser(ctx, actor);
-                const hasLocation = !!coordinates;
 
                 // If no location, we still store it for "atmospheric pulses"
                 // Schema requires array of numbers, so we use empty array for no location
@@ -78,20 +103,18 @@ export const pollPublicEvents = internalAction({
                         if (cachedLang) {
                             language = cachedLang.language;
                         } else {
-                            const repoResponse = await fetch(`https://api.github.com/repos/${repo}`, {
-                                headers: {
-                                    ...(GITHUB_TOKEN ? { Authorization: `token ${GITHUB_TOKEN}` } : {}),
-                                    "User-Agent": "ghworld-app",
-                                },
+                            // Use Octokit to fetch repo data with automatic throttling
+                            const [owner, repoName] = repo.split('/');
+                            const { data: repoData } = await octokit.rest.repos.get({
+                                owner,
+                                repo: repoName,
                             });
 
-                            if (repoResponse.ok) {
-                                const repoData = await repoResponse.json();
-                                language = repoData.language;
-                                await ctx.runMutation(internal.commits.cacheRepoLanguage, { repo, language });
-                            }
+                            language = repoData.language;
+                            await ctx.runMutation(internal.commits.cacheRepoLanguage, { repo, language });
                         }
-                    } catch (e) {
+                    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                    } catch (_e) {
                         // Ignore enrichment errors
                     }
                 }
@@ -132,6 +155,34 @@ export const pollPublicEvents = internalAction({
     },
 });
 
+export const validateGitHubToken = internalAction({
+    args: {},
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    handler: async (_ctx) => {
+        try {
+            const { data } = await octokit.rest.rateLimit.get();
+            const limit = data.resources.core.limit;
+            const authenticated = limit === 5000;
+
+            console.log(
+                authenticated
+                    ? `✓ GitHub Token: Authenticated (${limit}/hr)`
+                    : `✗ WARNING: Unauthenticated (${limit}/hr) - Set GITHUB_TOKEN!`
+            );
+
+            return {
+                valid: true,
+                authenticated,
+                remaining: data.resources.core.remaining,
+                resetAt: data.resources.core.reset * 1000,
+            };
+        } catch (error) {
+            console.error("Token validation failed:", error);
+            return { valid: false, authenticated: false };
+        }
+    },
+});
+
 async function getCoordinatesForUser(ctx: any, username: string): Promise<number[] | null> {
     // Check cache first
     const cached = await ctx.runQuery(internal.commits.getCachedLocation, { username });
@@ -139,30 +190,24 @@ async function getCoordinatesForUser(ctx: any, username: string): Promise<number
         return cached.coordinates;
     }
 
-    // Fetch user profile for location
+    // Fetch user profile for location using Octokit with automatic throttling
     try {
-        const userResponse = await fetch(`https://api.github.com/users/${username}`, {
-            headers: {
-                ...(GITHUB_TOKEN ? { Authorization: `token ${GITHUB_TOKEN}` } : {}),
-                "User-Agent": "ghworld-app",
-            },
+        const { data: userData } = await octokit.rest.users.getByUsername({
+            username,
         });
 
-        if (userResponse.ok) {
-            const userData = await userResponse.json();
-            const location = userData.location;
+        const location = userData.location;
 
-            if (location) {
-                const coords = await geocodeLocation(location);
-                if (coords) {
-                    // Cache successful geocode
-                    await ctx.runMutation(internal.commits.cacheLocation, {
-                        username,
-                        location,
-                        coordinates: coords,
-                    });
-                    return coords;
-                }
+        if (location) {
+            const coords = await geocodeLocation(location);
+            if (coords) {
+                // Cache successful geocode
+                await ctx.runMutation(internal.commits.cacheLocation, {
+                    username,
+                    location,
+                    coordinates: coords,
+                });
+                return coords;
             }
         }
     } catch (e) {
