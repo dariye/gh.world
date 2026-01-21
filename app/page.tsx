@@ -2,9 +2,11 @@
 
 import { useAction, useQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import GlobeComponent from "@/components/Globe";
 import TimelineControl from "@/components/TimelineControl";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
 export default function Home() {
   const [isLive, setIsLive] = useState(true);
@@ -61,12 +63,13 @@ export default function Home() {
         </p>
 
         <div className="mt-8 flex flex-col gap-2">
-          <div className="flex items-center gap-2">
-            <div className={`w-2 h-2 rounded-full ${isLive ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
-            <span className="text-white/60 text-xs font-mono">
-              {isLive ? 'SYSTEM ONLINE' : 'TIMELINE PAUSED'}
-            </span>
-          </div>
+          <Badge
+            variant={isLive ? "default" : "destructive"}
+            className={`w-fit ${isLive ? 'bg-green-600 hover:bg-green-600' : ''}`}
+          >
+            <div className={`w-2 h-2 rounded-full ${isLive ? 'bg-green-300 animate-pulse' : 'bg-red-300'}`} />
+            {isLive ? 'SYSTEM ONLINE' : 'TIMELINE PAUSED'}
+          </Badge>
           <div className="text-white/40 text-[10px] font-mono">
             ACTIVE COMMITS IN WINDOW: {commits?.length ?? 0}
           </div>
@@ -90,12 +93,14 @@ export default function Home() {
       />
 
       {/* Legend / Overlay */}
-      <div className="absolute top-6 right-6 z-50 bg-black/40 backdrop-blur-md p-4 rounded-xl border border-white/5 text-[10px] font-mono text-white/40 max-w-[200px]">
-        <p>This visualization shows public commits across all of GitHub in real-time.</p>
-        <p className="mt-2 text-blue-400 group cursor-help transition-colors hover:text-blue-300">
-          Click any point to view the author's GitHub profile.
-        </p>
-      </div>
+      <Card className="absolute top-6 right-6 z-50 bg-black/40 backdrop-blur-md border-white/5 max-w-[200px] py-3">
+        <CardContent className="text-[10px] font-mono text-white/40 p-0 px-4">
+          <p>This visualization shows public commits across all of GitHub in real-time.</p>
+          <p className="mt-2 text-blue-400 group cursor-help transition-colors hover:text-blue-300">
+            Click any point to view the author's GitHub profile.
+          </p>
+        </CardContent>
+      </Card>
     </main>
   );
 }

@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Slider } from "@/components/ui/slider";
 
 interface TimelineControlProps {
     minTime: number;
@@ -24,6 +26,7 @@ export default function TimelineControl({
     const [mounted, setMounted] = useState(false);
     const windowMs = windowSizeHours * 60 * 60 * 1000;
     const endTime = startTime + windowMs;
+    const sliderMax = Math.max(minTime, maxTime - windowMs);
 
     useEffect(() => {
         setMounted(true);
@@ -43,26 +46,27 @@ export default function TimelineControl({
                     </div>
 
                     <div className="flex gap-4 items-center">
-                        <button
+                        <Button
                             onClick={() => onLiveToggle(!isLive)}
-                            className={`px-4 py-2 rounded-full text-xs font-bold transition-all ${isLive
-                                ? "bg-blue-600 text-white shadow-lg shadow-blue-500/20"
-                                : "bg-white/10 text-white/60 hover:bg-white/20"
+                            variant={isLive ? "default" : "outline"}
+                            size="sm"
+                            className={`rounded-full text-xs font-bold ${isLive
+                                ? "bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-500/20"
+                                : ""
                                 }`}
                         >
                             {isLive ? "PAUSE" : "GO LIVE"}
-                        </button>
+                        </Button>
 
-                        <input
-                            type="range"
+                        <Slider
                             min={minTime}
-                            max={Math.max(minTime, maxTime - windowMs)}
-                            value={startTime}
-                            onChange={(e) => {
-                                onStartTimeChange(Number(e.target.value));
+                            max={sliderMax}
+                            value={[startTime]}
+                            onValueChange={(value) => {
+                                onStartTimeChange(value[0]);
                                 if (isLive) onLiveToggle(false);
                             }}
-                            className="flex-1 h-2 bg-white/10 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                            className="flex-1"
                         />
                     </div>
                 </div>

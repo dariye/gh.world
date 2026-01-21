@@ -49,7 +49,7 @@ interface Commit {
     timestamp: number;
     coordinates: number[];
     authorUrl: string;
-    language: string | null;
+    language?: string | null;
 }
 
 interface GlobeComponentProps {
@@ -71,7 +71,7 @@ export default function GlobeComponent({ commits }: GlobeComponentProps) {
                 lat: commit.coordinates[0],
                 lng: commit.coordinates[1],
                 size: 0.15,
-                color: getLanguageColor(commit.language, opacity),
+                color: getLanguageColor(commit.language ?? null, opacity),
                 label: `${commit.author}: ${commit.message}`,
                 ...commit,
             };
