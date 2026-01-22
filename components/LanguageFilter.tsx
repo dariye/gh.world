@@ -47,19 +47,19 @@ export default function LanguageFilter({ value, onChange }: LanguageFilterProps)
                     variant="outline"
                     role="combobox"
                     aria-expanded={open}
-                    className="w-[140px] sm:w-[180px] h-8 sm:h-9 justify-between bg-black/40 border-white/10 text-white/80 hover:bg-white/10 hover:text-white text-xs sm:text-sm"
+                    className="w-[140px] sm:w-[160px] md:w-[180px] h-8 sm:h-8 md:h-9 justify-between bg-black/40 border-white/10 text-white/80 hover:bg-white/10 hover:text-white text-xs sm:text-xs md:text-sm"
                 >
-                    <span className="flex items-center gap-1.5 sm:gap-2 truncate">
+                    <span className="flex items-center gap-1.5 sm:gap-1.5 md:gap-2 truncate">
                         <span
-                            className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full shrink-0"
+                            className="w-2.5 h-2.5 sm:w-2.5 sm:h-2.5 md:w-3 md:h-3 rounded-full shrink-0"
                             style={{ backgroundColor: selectedLanguage?.color }}
                         />
                         <span className="truncate">{selectedLanguage?.label || "All Languages"}</span>
                     </span>
-                    <ChevronsUpDown className="ml-1 sm:ml-2 h-3 w-3 sm:h-4 sm:w-4 shrink-0 opacity-50" />
+                    <ChevronsUpDown className="ml-1 sm:ml-1.5 md:ml-2 h-3 w-3 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4 shrink-0 opacity-50" />
                 </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-[180px] sm:w-[200px] p-0 bg-black/90 border-white/10">
+            <PopoverContent className="w-[180px] sm:w-[190px] md:w-[200px] p-0 bg-black/90 border-white/10">
                 <Command className="bg-transparent">
                     <CommandInput
                         placeholder="Search languages..."

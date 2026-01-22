@@ -33,10 +33,10 @@ export function UserMenu({ onOpenStats }: UserMenuProps = {}) {
         variant="ghost"
         size="sm"
         onClick={() => signIn("github")}
-        className="h-8 gap-2 text-xs"
+        className="h-8 gap-1.5 sm:gap-1.5 md:gap-2 text-xs"
       >
         <LogIn className="h-3.5 w-3.5" />
-        <span className="hidden sm:inline">Sign in</span>
+        <span className="hidden md:inline">Sign in</span>
       </Button>
     );
   }

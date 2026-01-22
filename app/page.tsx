@@ -255,11 +255,11 @@ export default function Home() {
   return (
     <main className="relative w-full h-screen bg-[#060a0f] transition-colors duration-500 overflow-hidden">
       {/* Top Left: Branding */}
-      <div className="absolute top-4 left-4 sm:top-6 sm:left-6 z-50 pointer-events-none flex flex-col gap-1">
-        <h1 className="text-xl sm:text-2xl font-bold tracking-tighter text-white">
-          gh.world<span className="text-[8px] sm:text-[10px] font-normal text-zinc-600 ml-1 align-super">v1.0.4</span>
+      <div className="absolute top-4 left-4 sm:top-5 sm:left-5 md:top-6 md:left-6 z-50 pointer-events-none flex flex-col gap-1">
+        <h1 className="text-xl sm:text-[22px] md:text-2xl font-bold tracking-tighter text-white">
+          gh.world<span className="text-[8px] sm:text-[9px] md:text-[10px] font-normal text-zinc-600 ml-1 align-super">v1.0.4</span>
         </h1>
-        <p className="text-white/40 text-[10px] sm:text-xs font-mono lowercase tracking-widest">
+        <p className="text-white/40 text-[10px] sm:text-[11px] md:text-xs font-mono lowercase tracking-widest">
           view the world in github commits
         </p>
         <div className="pointer-events-auto mt-2">
@@ -271,7 +271,7 @@ export default function Home() {
       </div>
 
       {/* Top Right: Controls */}
-      <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-50 pointer-events-auto flex items-center gap-2">
+      <div className="absolute top-4 right-4 sm:top-5 sm:right-5 md:top-6 md:right-6 z-50 pointer-events-auto flex items-center gap-1.5 sm:gap-2">
         <UserMenu onOpenStats={() => setIsPersonalDashboardOpen(true)} />
         <ModeToggle />
       </div>
@@ -285,22 +285,22 @@ export default function Home() {
       />
 
       {/* Bottom Left: Activity Legend (above timeline) */}
-      <div className="absolute bottom-28 sm:bottom-32 left-4 sm:left-6 z-40 pointer-events-none">
+      <div className="absolute bottom-28 sm:bottom-28 md:bottom-32 left-4 sm:left-5 md:left-6 z-40 pointer-events-none">
         <ActivityLegend />
       </div>
 
       {/* Bottom Left: Credits (below legend, above timeline) */}
-      <div className="absolute bottom-16 sm:bottom-20 left-4 sm:left-6 z-40 pointer-events-auto">
+      <div className="absolute bottom-16 sm:bottom-16 md:bottom-20 left-4 sm:left-5 md:left-6 z-40 pointer-events-auto">
         <CreditsBadge />
       </div>
 
 
       {/* Bottom Right: Status (above timeline) */}
-      <div className="absolute bottom-28 sm:bottom-32 right-4 sm:right-6 z-40 pointer-events-auto flex flex-col items-end gap-1.5 sm:gap-2">
-        <div className={`text-white/40 text-[9px] sm:text-[10px] font-mono bg-card/50 backdrop-blur-sm px-1.5 sm:px-2 py-0.5 sm:py-1 rounded ${isCountLoading ? 'animate-pulse' : ''}`}>
+      <div className="absolute bottom-28 sm:bottom-28 md:bottom-32 right-4 sm:right-5 md:right-6 z-40 pointer-events-auto flex flex-col items-end gap-1.5 sm:gap-1.5 md:gap-2">
+        <div className={`text-white/40 text-[9px] sm:text-[9px] md:text-[10px] font-mono bg-card/50 backdrop-blur-sm px-1.5 sm:px-1.5 md:px-2 py-0.5 sm:py-0.5 md:py-1 rounded ${isCountLoading ? 'animate-pulse' : ''}`}>
           {isCountLoading ? '---' : activeCommitCount.toLocaleString()} ACTIVE COMMITS
         </div>
-        <div className="flex items-center gap-1.5 sm:gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-1.5 md:gap-2">
 <SunriseMode
             isActive={isSunriseMode}
             onToggle={handleSunriseModeToggle}

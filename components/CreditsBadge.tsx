@@ -5,7 +5,7 @@ import Link from "next/link";
 export function CreditsBadge() {
   return (
     <div className="flex flex-col gap-1 items-start">
-      <div className="flex items-center gap-2 text-[9px] sm:text-[10px] font-mono text-zinc-600">
+      <div className="flex items-center gap-1.5 sm:gap-1.5 md:gap-2 text-[9px] sm:text-[9px] md:text-[10px] font-mono text-zinc-600">
         <span className="uppercase tracking-wider">Powered by</span>
         <Link
           href="https://convex.dev"
@@ -13,7 +13,7 @@ export function CreditsBadge() {
           rel="noopener noreferrer"
           className="inline-flex items-center gap-1 hover:text-zinc-400 transition-colors"
         >
-          <ConvexLogo className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+          <ConvexLogo className="h-3 w-3 sm:h-3 sm:w-3 md:h-3.5 md:w-3.5" />
           <span>Convex</span>
         </Link>
         <span className="text-zinc-700">+</span>
@@ -23,7 +23,7 @@ export function CreditsBadge() {
           rel="noopener noreferrer"
           className="inline-flex items-center gap-1 hover:text-zinc-400 transition-colors"
         >
-          <NextLogo className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+          <NextLogo className="h-3 w-3 sm:h-3 sm:w-3 md:h-3.5 md:w-3.5" />
           <span>Next.js</span>
         </Link>
       </div>

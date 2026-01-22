@@ -185,15 +185,15 @@ export function StatsSidebar({ isOpen: controlledIsOpen, onOpenChange }: StatsSi
                 <Button
                     variant="outline"
                     size="icon"
-                    className="h-8 w-8 sm:h-9 sm:w-9 bg-zinc-900/40 border-zinc-800 hover:bg-zinc-800 hover:border-zinc-700 backdrop-blur-sm transition-all"
+                    className="h-8 w-8 sm:h-8 sm:w-8 md:h-9 md:w-9 bg-zinc-900/40 border-zinc-800 hover:bg-zinc-800 hover:border-zinc-700 backdrop-blur-sm transition-all"
                 >
-                    <BarChart3 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                    <BarChart3 className="h-3.5 w-3.5 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4" />
                 </Button>
             </SheetTrigger>
 
             <SheetContent
                 side="right"
-                className="w-full sm:w-[420px] bg-zinc-950 border-zinc-900 p-0 flex flex-col"
+                className="w-full sm:w-[380px] md:w-[420px] bg-zinc-950 border-zinc-900 p-0 flex flex-col"
             >
                 <SheetHeader className="p-6 pb-4 border-b border-zinc-900 flex-shrink-0">
                     <SheetTitle className="text-zinc-100 flex items-center gap-2 text-sm font-bold tracking-tight">
