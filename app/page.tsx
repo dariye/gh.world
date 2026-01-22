@@ -30,6 +30,7 @@ import {
 } from "@/lib/sunrise";
 import { SoundToggle } from "@/components/SoundToggle";
 import { useCommitSounds } from "@/lib/useCommitSounds";
+import { ViewerCount } from "@/components/ViewerCount";
 
 export default function Home() {
   // Timeline state
@@ -261,6 +262,9 @@ export default function Home() {
           view the world in github commits
         </p>
         <div className="pointer-events-auto mt-2">
+          <ViewerCount />
+        </div>
+        <div className="pointer-events-auto mt-1">
           <LocationQuickJump onJumpTo={handleJumpToLocation} />
         </div>
       </div>
