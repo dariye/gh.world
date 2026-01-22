@@ -32,7 +32,7 @@ export default function SunriseMode({
       {/* Toggle button */}
       <button
         onClick={() => onToggle(!isActive)}
-        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background ${
+className={`flex items-center gap-1 sm:gap-1 md:gap-1.5 px-2 sm:px-2.5 md:px-3 py-1 sm:py-1 md:py-1.5 rounded-full text-xs font-medium transition-all shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background ${
           isActive
             ? "bg-amber-500/20 text-amber-400 border border-amber-500/30"
             : "bg-white/5 text-white/50 hover:bg-white/10 hover:text-white/70 border border-white/10"
@@ -41,7 +41,7 @@ export default function SunriseMode({
         title="Sunrise Mode: Watch 24 hours in 2 minutes"
       >
         <Sunrise className={`w-3.5 h-3.5 ${isActive ? "animate-pulse" : ""}`} />
-        <span className="hidden sm:inline">Sunrise</span>
+        <span className="hidden md:inline">Sunrise</span>
       </button>
     </div>
   );

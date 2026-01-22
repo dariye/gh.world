@@ -94,15 +94,15 @@ export function ProfileSearch({
                     <Button
                         variant="outline"
                         size="icon"
-                        className="h-8 w-8 sm:h-9 sm:w-9 bg-zinc-900/40 border-zinc-800 hover:bg-zinc-800 hover:border-zinc-700 backdrop-blur-sm transition-all"
+                        className="h-8 w-8 sm:h-8 sm:w-8 md:h-9 md:w-9 bg-zinc-900/40 border-zinc-800 hover:bg-zinc-800 hover:border-zinc-700 backdrop-blur-sm transition-all"
                         title="Find Contributors"
                     >
-                        <Search className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                        <Search className="h-3.5 w-3.5 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4" />
                     </Button>
                 </DialogTrigger>
             )}
 
-            <DialogContent className="bg-zinc-950 border-zinc-800 p-0 gap-0 max-w-md sm:max-w-lg">
+            <DialogContent className="bg-zinc-950 border-zinc-800 p-0 gap-0 max-w-[calc(100%-2rem)] sm:max-w-md md:max-w-lg">
                 {selectedUsername && profileStats ? (
                     // Profile Card View
                     <div className="p-4">
