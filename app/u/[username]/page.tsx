@@ -4,6 +4,9 @@ import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useParams } from "next/navigation";
 import { ProfileCard } from "@/components/ProfileCard";
+import { ActivityHeatmap } from "@/components/ActivityHeatmap";
+import { CodingHoursChart } from "@/components/CodingHoursChart";
+import { StreakStats } from "@/components/StreakStats";
 import { Button } from "@/components/ui/button";
 import { Globe, Copy, Check, ArrowLeft, CreditCard } from "lucide-react";
 import Link from "next/link";
@@ -17,6 +20,11 @@ export default function ProfilePage() {
     const profileStats = useQuery(
         api.profiles.getProfileStats,
         username ? { username } : "skip"
+    );
+
+    const enhancedStats = useQuery(
+        api.profiles.getEnhancedProfileStats,
+        username ? { username, days: 30 } : "skip"
     );
 
     const handleCopyLink = () => {
@@ -74,7 +82,7 @@ export default function ProfilePage() {
             </header>
 
             {/* Main Content */}
-            <main className="flex-1 flex items-center justify-center p-4">
+            <main className="flex-1 flex items-center justify-center p-4 py-8">
                 {profileStats === undefined ? (
                     // Loading state
                     <div className="text-zinc-500 text-center">
@@ -100,17 +108,60 @@ export default function ProfilePage() {
                         </Link>
                     </div>
                 ) : (
-                    // Profile found
-                    <ProfileCard
-                        username={profileStats.author}
-                        authorUrl={profileStats.authorUrl}
-                        commitCount={profileStats.commitCount}
-                        percentileRank={profileStats.percentileRank}
-                        languageBreakdown={profileStats.languageBreakdown}
-                        location={profileStats.location}
-                        latestCommitMessage={profileStats.latestCommitMessage}
-                        firstCommitTimestamp={profileStats.firstCommitTimestamp}
-                    />
+                    // Profile found - show card and enhanced stats
+                    <div className="w-full max-w-4xl flex flex-col lg:flex-row gap-6 items-start justify-center">
+                        {/* Profile Card */}
+                        <ProfileCard
+                            username={profileStats.author}
+                            authorUrl={profileStats.authorUrl}
+                            commitCount={profileStats.commitCount}
+                            percentileRank={profileStats.percentileRank}
+                            languageBreakdown={profileStats.languageBreakdown}
+                            location={profileStats.location}
+                            latestCommitMessage={profileStats.latestCommitMessage}
+                            firstCommitTimestamp={profileStats.firstCommitTimestamp}
+                        />
+
+                        {/* Enhanced Stats Panel */}
+                        {enhancedStats && (
+                            <div className="w-full max-w-[400px] lg:flex-1 space-y-6">
+                                {/* Activity Heatmap */}
+                                <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-4">
+                                    <h3 className="text-sm font-medium text-zinc-300 mb-3">
+                                        Activity (last 30 days)
+                                    </h3>
+                                    <ActivityHeatmap
+                                        data={enhancedStats.activityData}
+                                        days={30}
+                                    />
+                                </div>
+
+                                {/* Streak Stats */}
+                                <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-4">
+                                    <h3 className="text-sm font-medium text-zinc-300 mb-3">
+                                        Streaks & Activity
+                                    </h3>
+                                    <StreakStats
+                                        currentStreak={enhancedStats.currentStreak}
+                                        longestStreak={enhancedStats.longestStreak}
+                                        activeDays={enhancedStats.activeDays}
+                                        avgCommitsPerDay={enhancedStats.avgCommitsPerActiveDay}
+                                    />
+                                </div>
+
+                                {/* Coding Hours */}
+                                <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-4">
+                                    <h3 className="text-sm font-medium text-zinc-300 mb-3">
+                                        Coding Hours (UTC)
+                                    </h3>
+                                    <CodingHoursChart
+                                        data={enhancedStats.hourlyData}
+                                        peakHour={enhancedStats.peakHour}
+                                    />
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 )}
             </main>
 
