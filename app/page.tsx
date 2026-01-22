@@ -17,6 +17,7 @@ import { ModeToggle } from "@/components/ModeToggle";
 import { StatsSidebar } from "@/components/StatsSidebar";
 import { ProfileSearch } from "@/components/ProfileSearch";
 import { UserMenu } from "@/components/UserMenu";
+import { PersonalStatsDashboard } from "@/components/PersonalStatsDashboard";
 import KeyboardShortcutsHelp from "@/components/KeyboardShortcutsHelp";
 import { useKeyboardShortcuts } from "@/lib/useKeyboardShortcuts";
 import { SUPPORTED_LANGUAGES } from "@/lib/colors";
@@ -40,6 +41,8 @@ export default function Home() {
   const [selectedCommit, setSelectedCommit] = useState<Commit | null>(null);
   const [isStatsOpen, setIsStatsOpen] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
+  const [isPersonalDashboardOpen, setIsPersonalDashboardOpen] = useState(false);
+  const [highlightedUser, setHighlightedUser] = useState<string | null>(null);
 
   // Location quick-jump state
   const [targetLocation, setTargetLocation] = useState<TargetLocation | null>(null);
@@ -204,6 +207,11 @@ export default function Home() {
 
       {/* Top Right: Controls */}
       <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-50 pointer-events-auto flex items-center gap-2">
+        <PersonalStatsDashboard
+          isOpen={isPersonalDashboardOpen}
+          onOpenChange={setIsPersonalDashboardOpen}
+          onHighlightUser={setHighlightedUser}
+        />
         <UserMenu />
         <ModeToggle />
       </div>
@@ -236,6 +244,7 @@ export default function Home() {
           onViewportChange={setViewport}
           isPlaying={isPlaying}
           targetLocation={targetLocation}
+          highlightedUser={highlightedUser}
         />
       </div>
 

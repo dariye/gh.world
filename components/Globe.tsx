@@ -71,7 +71,8 @@ function GlobeComponent({
     onSelectCommit,
     onViewportChange,
     isPlaying = false,
-    targetLocation
+    targetLocation,
+    highlightedUser
 }: {
     commits: Commit[],
     selectedLanguage: string | null,
@@ -79,7 +80,9 @@ function GlobeComponent({
     onSelectCommit?: (commit: Commit) => void,
     onViewportChange?: (viewport: Viewport) => void,
     isPlaying?: boolean,
-    targetLocation?: TargetLocation | null
+    targetLocation?: TargetLocation | null,
+    /** Username to highlight on the globe (their commits will stand out) */
+    highlightedUser?: string | null
 }) {
     const globeRef = useRef<any>(null);
 const autoRotateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -299,8 +302,8 @@ return createDayNightMaterial();
 
     // Single-pass memoized computation for points, rings, and recent unlocated commits
     const { points, rings, recentUnlocated } = useMemo(() => {
-        const points: Array<Commit & { lat: number; lng: number; size: number; color: string; label: string }> = [];
-        const rings: Array<{ lat: number; lng: number; maxR: number; propagationSpeed: number; repeatPeriod: number; language: string | null }> = [];
+        const points: Array<Commit & { lat: number; lng: number; size: number; color: string; label: string; isHighlighted?: boolean }> = [];
+        const rings: Array<{ lat: number; lng: number; maxR: number; propagationSpeed: number; repeatPeriod: number; language: string | null; isHighlighted?: boolean }> = [];
         const recentUnlocated: Commit[] = [];
 
         for (const commit of commits) {
@@ -309,29 +312,47 @@ return createDayNightMaterial();
 
             const hasCoords = commit.coordinates && commit.coordinates.length === 2;
             const age = quantizedTime - commit.timestamp;
+            const isHighlighted = Boolean(highlightedUser && commit.author === highlightedUser);
 
             if (hasCoords) {
                 // Add to points - "data bits" that pulse with freshness
                 const opacity = Math.max(0.15, 1 - age / (24 * 60 * 60 * 1000)); // Fade over 24h, min 0.15
                 // Fresh commits are larger (0.12-0.2), older commits shrink to base size
                 const ageHours = age / (60 * 60 * 1000);
-                const size = Math.max(0.12, 0.2 - ageHours * 0.01); // Shrink 0.01 per hour
+                let size = Math.max(0.12, 0.2 - ageHours * 0.01); // Shrink 0.01 per hour
+
+                // Highlighted user's commits are larger and use a distinct color
+                if (isHighlighted) {
+                    size = Math.max(0.25, size * 1.5); // 50% larger, min 0.25
+                }
+
                 points.push({
                     lat: commit.coordinates[0],
                     lng: commit.coordinates[1],
                     size,
-                    color: getLanguageRgba(commit.language ?? null, opacity),
+                    // Highlighted commits get a golden glow, others use language color
+                    color: isHighlighted
+                        ? `rgba(255, 215, 100, ${Math.max(0.7, opacity)})` // Golden with higher min opacity
+                        : getLanguageRgba(commit.language ?? null, opacity),
                     label: `${commit.author}: ${commit.message}`,
+                    isHighlighted,
                     ...commit,
                 });
 
-                // Add ring if recent (last 10 mins)
-                if (age < 10 * 60 * 1000) {
+                // Add ring for recent commits (last 10 mins) OR for highlighted user's commits
+                if (age < 10 * 60 * 1000 || isHighlighted) {
                     // Fresher commits get larger, faster ripples
-                    const freshness = 1 - age / (10 * 60 * 1000); // 1 = brand new, 0 = 10 mins old
-                    const maxR = 3 + freshness * 5; // 3-8 radius based on freshness
-                    const propagationSpeed = 2 + freshness * 3; // 2-5 speed
-                    const repeatPeriod = 1000 + (1 - freshness) * 1500; // 1000-2500ms (fresher = faster repeat)
+                    const freshness = Math.max(0, 1 - age / (10 * 60 * 1000)); // 1 = brand new, 0 = 10 mins old (clamp to 0)
+                    let maxR = 3 + freshness * 5; // 3-8 radius based on freshness
+                    let propagationSpeed = 2 + freshness * 3; // 2-5 speed
+                    let repeatPeriod = 1000 + (1 - freshness) * 1500; // 1000-2500ms (fresher = faster repeat)
+
+                    // Highlighted user gets persistent subtle rings
+                    if (isHighlighted && age >= 10 * 60 * 1000) {
+                        maxR = 4;
+                        propagationSpeed = 1.5;
+                        repeatPeriod = 3000;
+                    }
 
                     rings.push({
                         lat: commit.coordinates[0],
@@ -339,7 +360,8 @@ return createDayNightMaterial();
                         maxR,
                         propagationSpeed,
                         repeatPeriod,
-                        language: commit.language ?? null
+                        language: isHighlighted ? null : (commit.language ?? null), // null triggers golden color for highlighted
+                        isHighlighted
                     });
                 }
             } else if (age < 30 * 1000) {
@@ -349,7 +371,7 @@ return createDayNightMaterial();
         }
 
         return { points, rings, recentUnlocated };
-    }, [commits, selectedLanguage, quantizedTime]);
+    }, [commits, selectedLanguage, quantizedTime, highlightedUser]);
 
     // Separate effect for atmosphere - only triggers when recentUnlocated changes
     useEffect(() => {
@@ -688,7 +710,11 @@ hexPolygonLabel={getHexLabel}
 
                 // Rings (Recent activity ripple with language colors and fade-out)
                 ringsData={rings}
-                ringColor={((ring: { language: string | null }) => {
+                ringColor={((ring: { language: string | null; isHighlighted?: boolean }) => {
+                    // Highlighted user gets golden rings
+                    if (ring.isHighlighted) {
+                        return (t: number) => `rgba(255, 215, 100, ${Math.max(0, 0.8 - t * 0.8)})`;
+                    }
                     const [r, g, b] = LANGUAGE_COLORS_RGB[ring.language || "Other"] || LANGUAGE_COLORS_RGB["Other"];
                     // Return a function that fades out as the ring expands (t: 0->1)
                     return (t: number) => `rgba(${r}, ${g}, ${b}, ${Math.max(0, 1 - t)})`;
