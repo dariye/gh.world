@@ -53,6 +53,12 @@ export const getProfileStats = query({
         startTime: v.optional(v.number()),
     },
     handler: async (ctx, args) => {
+        // Validate username - return null for empty/whitespace
+        const username = args.username?.trim();
+        if (!username) {
+            return null;
+        }
+
         // Default to last 30 days
         const startTime =
             args.startTime ?? Date.now() - 30 * 24 * 60 * 60 * 1000;
@@ -65,7 +71,7 @@ export const getProfileStats = query({
 
         // User's commits
         const userCommits = allCommits.filter(
-            (c) => c.author === args.username
+            (c) => c.author === username
         );
 
         if (userCommits.length === 0) {
@@ -84,13 +90,13 @@ export const getProfileStats = query({
         const sortedCounts = Array.from(authorCounts.values()).sort(
             (a, b) => b - a
         );
-        const userCount = authorCounts.get(args.username) || 0;
+        const userCount = authorCounts.get(username) || 0;
         const rank = sortedCounts.findIndex((c) => c <= userCount);
         const totalContributors = sortedCounts.length;
-        const percentileRank = Math.max(
-            1,
-            Math.round((1 - rank / totalContributors) * 100)
-        );
+        // Guard against division by zero (should not happen if userCommits.length > 0)
+        const percentileRank = totalContributors > 0
+            ? Math.max(1, Math.round((1 - rank / totalContributors) * 100))
+            : 1;
 
         // Language breakdown (top 3)
         const langCounts = new Map<string, number>();
@@ -111,7 +117,7 @@ export const getProfileStats = query({
         // Get location from cache
         const locationCache = await ctx.db
             .query("locationCache")
-            .withIndex("by_username", (q) => q.eq("username", args.username))
+            .withIndex("by_username", (q) => q.eq("username", username))
             .first();
 
         // Latest commit (sorted by timestamp desc)
@@ -121,13 +127,16 @@ export const getProfileStats = query({
         const latestCommit = sortedUserCommits[0];
         const firstCommit = sortedUserCommits[sortedUserCommits.length - 1];
 
+        // Validate coordinates before returning
+        const hasValidCoordinates = locationCache?.coordinates?.length === 2;
+
         return {
-            author: args.username,
-            authorUrl: latestCommit?.authorUrl || `https://github.com/${args.username}`,
+            author: username,
+            authorUrl: latestCommit?.authorUrl || `https://github.com/${username}`,
             commitCount: userCommits.length,
             percentileRank,
             languageBreakdown,
-            location: locationCache
+            location: locationCache && hasValidCoordinates
                 ? {
                       text: locationCache.location,
                       coordinates: locationCache.coordinates as [number, number],
