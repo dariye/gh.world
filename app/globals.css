@@ -139,4 +139,16 @@
   [tabindex]:focus-visible {
     @apply outline-2 outline-offset-2 outline-ring ring-ring/50 ring-2;
   }
+
+  /* WCAG 2.3.3 - Respect prefers-reduced-motion */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
 }

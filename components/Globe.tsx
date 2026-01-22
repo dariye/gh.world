@@ -12,12 +12,13 @@ import {
 } from "@/lib/colors";
 import { createDayNightMaterial, updateSunDirection } from "./DayNightShader";
 import { SUNRISE_CONFIG, lerpLongitude } from "@/lib/sunrise";
+import { useReducedMotion } from "@/lib/useReducedMotion";
 
 const Globe = dynamic(() => import("react-globe.gl"), {
     ssr: false,
     loading: () => (
         <div className="w-full h-full flex items-center justify-center bg-[#060a0f]">
-            <div className="text-blue-400 animate-pulse text-lg font-mono">
+            <div className="text-blue-400 motion-safe:animate-pulse text-lg font-mono">
                 Initializing Global Commits...
             </div>
         </div>
@@ -92,7 +93,8 @@ function GlobeComponent({
     onSunriseInteraction?: () => void
 }) {
     const globeRef = useRef<any>(null);
-const autoRotateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const autoRotateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const prefersReducedMotion = useReducedMotion();
 
     const [atmosphereAltitude, setAtmosphereAltitude] = useState(0.15);
     const [atmosphereColor, setAtmosphereColor] = useState("#1a3050");
@@ -176,7 +178,8 @@ const autoRotateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
         if (centroid && globeRef.current) {
             const [lat, lng] = centroid;
             // Zoom in to altitude 0.8 (closer view) with smooth animation
-            globeRef.current.pointOfView({ lat, lng, altitude: 0.8 }, 1000);
+            // Reduced motion: instant transition (WCAG 2.3.3)
+            globeRef.current.pointOfView({ lat, lng, altitude: 0.8 }, prefersReducedMotion ? 0 : 1000);
         }
     };
 
@@ -433,26 +436,28 @@ return createDayNightMaterial();
 
             // Smoothly move camera to look at activity
             // We use the current altitude to maintain zoom level
+            // Reduced motion: instant transition (WCAG 2.3.3)
             const currentPos = globeRef.current.pointOfView();
             globeRef.current.pointOfView({
                 lat: targetLat,
                 lng: targetLng,
                 altitude: currentPos.altitude
-            }, 1000); // 1 second transition
+            }, prefersReducedMotion ? 0 : 1000);
         }
-    }, [isPlaying, points]);
+    }, [isPlaying, points, prefersReducedMotion]);
 
     // Quick-jump to target location
     useEffect(() => {
         if (!targetLocation || !globeRef.current) return;
 
         const altitude = targetLocation.altitude ?? 1.5; // Default zoom level for city view
+        // Reduced motion: instant transition (WCAG 2.3.3)
         globeRef.current.pointOfView({
             lat: targetLocation.lat,
             lng: targetLocation.lng,
             altitude
-        }, 800); // 800ms smooth transition
-    }, [targetLocation]);
+        }, prefersReducedMotion ? 0 : 800);
+    }, [targetLocation, prefersReducedMotion]);
 
     // Sunrise mode: smoothly follow the sun
     useEffect(() => {
@@ -503,8 +508,8 @@ return createDayNightMaterial();
         controls.dampingFactor = 0.1;
         controls.rotateSpeed = 0.8;
 
-        // Enable auto-rotate
-        controls.autoRotate = true;
+        // Enable auto-rotate (disabled if user prefers reduced motion - WCAG 2.3.3)
+        controls.autoRotate = !prefersReducedMotion;
         controls.autoRotateSpeed = AUTO_ROTATE_SPEED;
 
         // Handler to pause auto-rotate on user interaction
@@ -524,6 +529,9 @@ return createDayNightMaterial();
 
         // Handler to schedule auto-rotate resume after interaction ends
         const handleInteractionEnd = () => {
+            // Don't resume auto-rotate if user prefers reduced motion
+            if (prefersReducedMotion) return;
+
             // Clear any existing timeout
             if (autoRotateTimeoutRef.current) {
                 clearTimeout(autoRotateTimeoutRef.current);
@@ -548,7 +556,7 @@ return createDayNightMaterial();
                 clearTimeout(autoRotateTimeoutRef.current);
             }
         };
-    }, [onSunriseInteraction]);
+    }, [onSunriseInteraction, prefersReducedMotion]);
 
     // Keyboard navigation controls
     useEffect(() => {
@@ -602,13 +610,14 @@ return createDayNightMaterial();
 
             if (handled) {
                 e.preventDefault();
-                globeRef.current.pointOfView(newPov, 200); // 200ms smooth transition
+                // Reduced motion: instant transition (WCAG 2.3.3)
+                globeRef.current.pointOfView(newPov, prefersReducedMotion ? 0 : 200);
             }
         };
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, []);
+    }, [prefersReducedMotion]);
 
     // Viewport tracking logic
     useEffect(() => {
@@ -671,8 +680,8 @@ return createDayNightMaterial();
         const controls = globeRef.current.controls();
         if (!controls) return;
 
-        // Enable auto-rotation by default
-        controls.autoRotate = true;
+        // Enable auto-rotation by default (disabled if user prefers reduced motion - WCAG 2.3.3)
+        controls.autoRotate = !prefersReducedMotion;
         controls.autoRotateSpeed = 0.5;
 
         const handleInteractionStart = () => {
@@ -686,6 +695,9 @@ return createDayNightMaterial();
         };
 
         const handleInteractionEnd = () => {
+            // Don't resume auto-rotate if user prefers reduced motion
+            if (prefersReducedMotion) return;
+
             // Clear any existing timer
             if (autoRotateTimeoutRef.current) {
                 clearTimeout(autoRotateTimeoutRef.current);
@@ -707,7 +719,7 @@ return createDayNightMaterial();
                 clearTimeout(autoRotateTimeoutRef.current);
             }
         };
-    }, []);
+    }, [prefersReducedMotion]);
 
     return (
         <div ref={globeContainerRef} className="w-full h-full bg-[#060a0f]">
@@ -740,7 +752,8 @@ hexPolygonLabel={getHexLabel}
                 pointLabel="label"
 
                 // Rings (Recent activity ripple with language colors and fade-out)
-                ringsData={rings}
+                // Disabled when user prefers reduced motion (WCAG 2.3.3)
+                ringsData={prefersReducedMotion ? [] : rings}
                 ringColor={((ring: { language: string | null; isHighlighted?: boolean }) => {
                     // Highlighted user gets golden rings
                     if (ring.isHighlighted) {
