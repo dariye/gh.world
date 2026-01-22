@@ -78,7 +78,7 @@ export function SoundToggle() {
         <Button
           variant="ghost"
           size="icon"
-          className={`text-white/60 hover:text-white hover:bg-white/10 ${
+          className={`h-8 w-8 sm:h-8 sm:w-8 md:h-9 md:w-9 text-white/60 hover:text-white hover:bg-white/10 ${
             enabled ? "text-white/90" : ""
           }`}
           onClick={handleToggle}

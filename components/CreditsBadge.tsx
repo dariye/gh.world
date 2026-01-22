@@ -4,16 +4,17 @@ import Link from "next/link";
 
 export function CreditsBadge() {
   return (
-    <div className="flex flex-col gap-1 items-start">
-      <div className="flex items-center gap-1.5 sm:gap-1.5 md:gap-2 text-[9px] sm:text-[9px] md:text-[10px] font-mono text-zinc-600">
+    <div className="flex flex-col gap-0.5 items-start text-[9px] sm:text-[9px] md:text-[10px] font-mono text-zinc-600">
+      {/* Primary line: Powered by + Made with love */}
+      <div className="flex items-center gap-1.5 sm:gap-1.5 md:gap-2 flex-wrap">
         <span className="uppercase tracking-wider">Powered by</span>
         <Link
           href="https://convex.dev"
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1 hover:text-zinc-400 transition-colors rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background"
+          className="inline-flex items-center gap-0.5 hover:text-zinc-400 transition-colors rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background"
         >
-          <ConvexLogo className="h-3 w-3 sm:h-3 sm:w-3 md:h-3.5 md:w-3.5" />
+          <ConvexLogo className="h-3 w-3 md:h-3.5 md:w-3.5" />
           <span>Convex</span>
         </Link>
         <span className="text-zinc-700">+</span>
@@ -21,36 +22,48 @@ export function CreditsBadge() {
           href="https://nextjs.org"
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1 hover:text-zinc-400 transition-colors rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background"
+          className="inline-flex items-center gap-0.5 hover:text-zinc-400 transition-colors rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background"
         >
-          <NextLogo className="h-3 w-3 sm:h-3 sm:w-3 md:h-3.5 md:w-3.5" />
+          <NextLogo className="h-3 w-3 md:h-3.5 md:w-3.5" />
           <span>Next.js</span>
         </Link>
+        <span className="text-zinc-700 hidden sm:inline">·</span>
+        <span className="hidden sm:inline">
+          Made with <span className="text-red-500/60">♥</span> by{" "}
+          <Link
+            href="https://github.com/dariye"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-zinc-400 transition-colors rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background"
+          >
+            dariye
+          </Link>
+        </span>
       </div>
-      <p className="text-[8px] text-zinc-700 tracking-wide">
-        Not affiliated with GitHub
-      </p>
-      <p className="text-[8px] text-zinc-700 tracking-wide">
-        Made with{" "}
-        <span className="text-red-500/60">♥</span>
-        {" "}by{" "}
+      {/* Mobile: Made with love on separate line */}
+      <p className="text-[8px] text-zinc-700 tracking-wide sm:hidden">
+        Made with <span className="text-red-500/60">♥</span> by{" "}
         <Link
           href="https://github.com/dariye"
           target="_blank"
           rel="noopener noreferrer"
-          className="hover:text-zinc-500 transition-colors"
+          className="hover:text-zinc-400 transition-colors"
         >
           dariye
         </Link>
-        {" · "}
+      </p>
+      {/* Secondary line: Source + disclaimer */}
+      <p className="text-[8px] text-zinc-700/80 tracking-wide">
         <Link
           href="https://github.com/dariye/gh.world"
           target="_blank"
           rel="noopener noreferrer"
-          className="hover:text-zinc-500 transition-colors"
+          className="hover:text-zinc-500 transition-colors rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background"
         >
           source
         </Link>
+        {" · "}
+        <span>not affiliated with GitHub</span>
       </p>
     </div>
   );

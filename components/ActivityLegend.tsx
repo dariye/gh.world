@@ -12,17 +12,17 @@ const LEVELS = [
 
 export default function ActivityLegend() {
   return (
-    <div className="flex items-center gap-1.5 text-[10px] font-mono text-white/40">
-      <span className="mr-1">Activity:</span>
+    <div className="flex items-center gap-1 sm:gap-1.5 md:gap-2 text-[9px] sm:text-[9px] md:text-[10px] font-mono text-white/40">
+      <span className="mr-0.5 sm:mr-1">Activity:</span>
       {LEVELS.map((level) => (
-        <div key={level.label} className="flex items-center gap-0.5" title={level.label}>
+        <div key={level.label} className="flex items-center" title={level.label}>
           <div
-            className="w-3 h-3 rounded-sm"
+            className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-sm"
             style={{ backgroundColor: level.color }}
           />
         </div>
       ))}
-      <span className="ml-1 text-white/30">Low → High</span>
+      <span className="ml-0.5 sm:ml-1 text-white/30">Low → High</span>
     </div>
   );
 }
