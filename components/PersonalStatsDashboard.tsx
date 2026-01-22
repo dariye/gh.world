@@ -7,6 +7,7 @@ import { api } from "@/convex/_generated/api";
 import {
     Sheet,
     SheetContent,
+    SheetDescription,
     SheetHeader,
     SheetTitle,
     SheetTrigger,
@@ -111,9 +112,9 @@ export function PersonalStatsDashboard({
                         <Sparkles className="h-4 w-4 text-emerald-400" />
                         YOUR MIRROR
                     </SheetTitle>
-                    <p className="text-[10px] text-zinc-500 mt-1">
+                    <SheetDescription className="text-[10px] text-zinc-500 mt-1">
                         Your place in the global code stream
-                    </p>
+                    </SheetDescription>
                 </SheetHeader>
 
                 <div className="flex-1 overflow-y-auto custom-scrollbar">

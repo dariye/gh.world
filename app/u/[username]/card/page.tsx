@@ -20,13 +20,16 @@ import { useState, useRef, useCallback } from "react";
 
 export default function CardPage() {
     const params = useParams();
-    const username = params.username as string;
+    const username = typeof params.username === 'string' ? params.username : null;
     const [copied, setCopied] = useState(false);
     const [theme, setTheme] = useState<"dark" | "light">("dark");
     const [isExporting, setIsExporting] = useState(false);
     const cardRef = useRef<HTMLDivElement>(null);
 
-    const profileStats = useQuery(api.profiles.getProfileStats, { username });
+    const profileStats = useQuery(
+        api.profiles.getProfileStats,
+        username ? { username } : "skip"
+    );
 
     const cardUrl = typeof window !== "undefined"
         ? `${window.location.origin}/u/${username}/card`
