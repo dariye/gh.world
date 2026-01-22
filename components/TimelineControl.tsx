@@ -50,7 +50,7 @@ export default function TimelineControl({
                     {/* Play/Pause Button */}
                     <button
                         onClick={() => onPlayPause(!isPlaying)}
-                        className={`w-9 h-9 rounded-full flex items-center justify-center transition-all shrink-0 ${
+                        className={`w-9 h-9 rounded-full flex items-center justify-center transition-all shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background ${
                             isPlaying && !isLive
                                 ? "bg-primary text-primary-foreground"
                                 : "bg-white/10 text-white/70 hover:bg-white/20 hover:text-white"
@@ -84,7 +84,7 @@ export default function TimelineControl({
                             <button
                                 key={s}
                                 onClick={() => onPlaybackSpeedChange(s)}
-                                className={`px-2 py-1 text-xs font-mono rounded-md transition-all ${
+                                className={`px-2 py-1 text-xs font-mono rounded-md transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background ${
                                     playbackSpeed === s
                                         ? "bg-white/20 text-white font-semibold"
                                         : "text-white/40 hover:text-white/70"
@@ -98,7 +98,7 @@ export default function TimelineControl({
                     {/* Live Toggle */}
                     <button
                         onClick={() => onLiveToggle(!isLive)}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all shrink-0 ${
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background ${
                             isLive
                                 ? "bg-green-500/20 text-green-400 border border-green-500/30"
                                 : "bg-white/5 text-white/50 hover:bg-white/10 hover:text-white/70 border border-white/10"

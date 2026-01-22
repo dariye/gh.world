@@ -11,7 +11,7 @@ export function CreditsBadge() {
           href="https://convex.dev"
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1 hover:text-zinc-400 transition-colors"
+          className="inline-flex items-center gap-1 hover:text-zinc-400 transition-colors rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background"
         >
           <ConvexLogo className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
           <span>Convex</span>
@@ -21,7 +21,7 @@ export function CreditsBadge() {
           href="https://nextjs.org"
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1 hover:text-zinc-400 transition-colors"
+          className="inline-flex items-center gap-1 hover:text-zinc-400 transition-colors rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background"
         >
           <NextLogo className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
           <span>Next.js</span>

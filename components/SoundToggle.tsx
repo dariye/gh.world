@@ -104,7 +104,7 @@ export function SoundToggle() {
             </span>
             <button
               onClick={handleToggle}
-              className={`text-xs px-2 py-0.5 rounded ${
+              className={`text-xs px-2 py-0.5 rounded transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background ${
                 enabled
                   ? "bg-green-500/20 text-green-400"
                   : "bg-white/10 text-white/40"
