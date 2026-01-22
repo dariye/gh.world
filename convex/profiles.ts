@@ -158,6 +158,128 @@ export const getProfileStats = query({
 });
 
 /**
+ * Get enhanced profile stats including activity heatmap data, coding hours, and streaks.
+ */
+export const getEnhancedProfileStats = query({
+    args: {
+        username: v.string(),
+        days: v.optional(v.number()), // How many days of history (default 30)
+    },
+    handler: async (ctx, args) => {
+        const username = args.username?.trim();
+        if (!username) {
+            return null;
+        }
+
+        const days = args.days ?? 30;
+        const startTime = Date.now() - days * 24 * 60 * 60 * 1000;
+
+        // Get all user commits
+        const userCommits = await ctx.db
+            .query("commits")
+            .withIndex("by_author", (q) => q.eq("author", username))
+            .collect();
+
+        // Filter to time window
+        const recentCommits = userCommits.filter((c) => c.timestamp >= startTime);
+
+        if (userCommits.length === 0) {
+            return null;
+        }
+
+        // Build daily activity map (for heatmap)
+        const dailyActivity = new Map<string, number>();
+        const hourlyActivity = new Array(24).fill(0);
+
+        for (const commit of recentCommits) {
+            // Daily activity
+            const date = new Date(commit.timestamp).toISOString().split("T")[0];
+            dailyActivity.set(date, (dailyActivity.get(date) || 0) + 1);
+
+            // Hourly activity (in UTC)
+            const hour = new Date(commit.timestamp).getUTCHours();
+            hourlyActivity[hour]++;
+        }
+
+        // Convert daily activity to array sorted by date
+        const activityData = Array.from(dailyActivity.entries())
+            .map(([date, count]) => ({ date, count }))
+            .sort((a, b) => a.date.localeCompare(b.date));
+
+        // Calculate current streak (consecutive days with commits, ending today or yesterday)
+        const today = new Date().toISOString().split("T")[0];
+        const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000)
+            .toISOString()
+            .split("T")[0];
+
+        let currentStreak = 0;
+        let checkDate = dailyActivity.has(today) ? today : yesterday;
+
+        // Only count streak if there's activity today or yesterday
+        if (dailyActivity.has(today) || dailyActivity.has(yesterday)) {
+            while (dailyActivity.has(checkDate)) {
+                currentStreak++;
+                const prevDate = new Date(
+                    new Date(checkDate).getTime() - 24 * 60 * 60 * 1000
+                )
+                    .toISOString()
+                    .split("T")[0];
+                checkDate = prevDate;
+            }
+        }
+
+        // Find longest streak in the data
+        let longestStreak = 0;
+        let tempStreak = 0;
+        const sortedDates = Array.from(dailyActivity.keys()).sort();
+
+        for (let i = 0; i < sortedDates.length; i++) {
+            if (i === 0) {
+                tempStreak = 1;
+            } else {
+                const prevDate = new Date(sortedDates[i - 1]);
+                const currDate = new Date(sortedDates[i]);
+                const diffDays = Math.round(
+                    (currDate.getTime() - prevDate.getTime()) / (24 * 60 * 60 * 1000)
+                );
+                if (diffDays === 1) {
+                    tempStreak++;
+                } else {
+                    longestStreak = Math.max(longestStreak, tempStreak);
+                    tempStreak = 1;
+                }
+            }
+        }
+        longestStreak = Math.max(longestStreak, tempStreak);
+
+        // Find peak coding hour
+        const peakHour = hourlyActivity.indexOf(Math.max(...hourlyActivity));
+
+        // Calculate hourly data as percentages for visualization
+        const maxHourlyCount = Math.max(...hourlyActivity);
+        const hourlyData = hourlyActivity.map((count, hour) => ({
+            hour,
+            count,
+            percentage: maxHourlyCount > 0 ? Math.round((count / maxHourlyCount) * 100) : 0,
+        }));
+
+        return {
+            activityData,
+            hourlyData,
+            currentStreak,
+            longestStreak,
+            peakHour,
+            totalCommits: recentCommits.length,
+            activeDays: dailyActivity.size,
+            avgCommitsPerActiveDay:
+                dailyActivity.size > 0
+                    ? Math.round((recentCommits.length / dailyActivity.size) * 10) / 10
+                    : 0,
+        };
+    },
+});
+
+/**
  * Search locations for region filter autocomplete.
  * Searches the locationCache table by location text.
  */
