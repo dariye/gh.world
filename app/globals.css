@@ -123,4 +123,9 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  /* WCAG 2.4.7: Focus visible styles for keyboard navigation */
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-ring;
+  }
 }
