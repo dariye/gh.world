@@ -95,8 +95,9 @@ export function ProfileSearch({
                         variant="outline"
                         size="icon"
                         className="h-8 w-8 sm:h-9 sm:w-9 bg-zinc-900/40 border-zinc-800 hover:bg-zinc-800 hover:border-zinc-700 backdrop-blur-sm transition-all"
+                        title="Find Contributors"
                     >
-                        <User className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                        <Search className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                     </Button>
                 </DialogTrigger>
             )}
