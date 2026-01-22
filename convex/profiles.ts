@@ -63,40 +63,48 @@ export const getProfileStats = query({
         const startTime =
             args.startTime ?? Date.now() - 30 * 24 * 60 * 60 * 1000;
 
-        // Get all commits in time window for percentile calculation
-        const allCommits = await ctx.db
+        // Query user's commits directly using the by_author index (efficient!)
+        // Then filter by timestamp client-side
+        const userCommitsAll = await ctx.db
             .query("commits")
-            .withIndex("by_timestamp", (q) => q.gte("timestamp", startTime))
+            .withIndex("by_author", (q) => q.eq("author", username))
             .collect();
 
-        // User's commits
-        const userCommits = allCommits.filter(
-            (c) => c.author === username
+        // Filter to time window
+        const userCommits = userCommitsAll.filter(
+            (c) => c.timestamp >= startTime
         );
 
         if (userCommits.length === 0) {
             return null;
         }
 
-        // Calculate percentile rank
-        const authorCounts = new Map<string, number>();
-        for (const commit of allCommits) {
-            authorCounts.set(
-                commit.author,
-                (authorCounts.get(commit.author) || 0) + 1
-            );
-        }
+        // For percentile calculation, use monthly stats if available
+        // This avoids reading all commits which can exceed Convex limits
+        const currentMonth = new Date().toISOString().slice(0, 7); // "2026-01"
+        const monthlyStats = await ctx.db
+            .query("monthlyStats")
+            .withIndex("by_month", (q) => q.eq("month", currentMonth))
+            .first();
 
-        const sortedCounts = Array.from(authorCounts.values()).sort(
-            (a, b) => b - a
-        );
-        const userCount = authorCounts.get(username) || 0;
-        const rank = sortedCounts.findIndex((c) => c <= userCount);
-        const totalContributors = sortedCounts.length;
-        // Guard against division by zero (should not happen if userCommits.length > 0)
-        const percentileRank = totalContributors > 0
-            ? Math.max(1, Math.round((1 - rank / totalContributors) * 100))
-            : 1;
+        // Estimate percentile based on monthly stats
+        // If user has X commits and average is Y commits per contributor,
+        // rough percentile = min(99, (X / avg) * 50)
+        let percentileRank = 50; // Default to median
+        if (monthlyStats && monthlyStats.uniqueContributors > 0) {
+            const avgCommitsPerUser = monthlyStats.totalCommits / monthlyStats.uniqueContributors;
+            const userRatio = userCommits.length / avgCommitsPerUser;
+            // Scale: 1x average = 50th percentile, 2x = 75th, 4x = ~90th
+            percentileRank = Math.min(99, Math.max(1, Math.round(50 + (Math.log2(userRatio) * 25))));
+        } else {
+            // Fallback: estimate based on commit count alone
+            // Top 1% typically has 100+ commits/month, top 10% has 20+
+            if (userCommits.length >= 100) percentileRank = 1;
+            else if (userCommits.length >= 50) percentileRank = 5;
+            else if (userCommits.length >= 20) percentileRank = 10;
+            else if (userCommits.length >= 10) percentileRank = 25;
+            else percentileRank = 50;
+        }
 
         // Language breakdown (top 3)
         const langCounts = new Map<string, number>();
