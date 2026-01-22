@@ -271,14 +271,17 @@ export default function Home() {
 
       {/* Top Right: Controls */}
       <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-50 pointer-events-auto flex items-center gap-2">
-        <PersonalStatsDashboard
-          isOpen={isPersonalDashboardOpen}
-          onOpenChange={setIsPersonalDashboardOpen}
-          onHighlightUser={setHighlightedUser}
-        />
-        <UserMenu />
+        <UserMenu onOpenStats={() => setIsPersonalDashboardOpen(true)} />
         <ModeToggle />
       </div>
+
+      {/* Personal Stats Dashboard (triggered from UserMenu) */}
+      <PersonalStatsDashboard
+        isOpen={isPersonalDashboardOpen}
+        onOpenChange={setIsPersonalDashboardOpen}
+        onHighlightUser={setHighlightedUser}
+        hideTrigger
+      />
 
       {/* Bottom Left: Activity Legend (above timeline) */}
       <div className="absolute bottom-28 sm:bottom-32 left-4 sm:left-6 z-40 pointer-events-none">

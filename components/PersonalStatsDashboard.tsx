@@ -23,12 +23,15 @@ interface PersonalStatsDashboardProps {
     onOpenChange?: (open: boolean) => void;
     /** Callback when user's commits should be highlighted on globe */
     onHighlightUser?: (username: string | null) => void;
+    /** Hide the trigger button (when triggered from elsewhere like UserMenu) */
+    hideTrigger?: boolean;
 }
 
 export function PersonalStatsDashboard({
     isOpen: controlledIsOpen,
     onOpenChange,
     onHighlightUser,
+    hideTrigger = false,
 }: PersonalStatsDashboardProps = {}) {
     const { data: session, status } = useSession();
     const [internalIsOpen, setInternalIsOpen] = useState(false);
@@ -85,23 +88,25 @@ export function PersonalStatsDashboard({
 
     return (
         <Sheet open={isOpen} onOpenChange={setIsOpen}>
-            <SheetTrigger asChild>
-                <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-8 w-8 sm:h-9 sm:w-9 bg-zinc-900/40 border-zinc-800 hover:bg-zinc-800 hover:border-zinc-700 backdrop-blur-sm transition-all relative"
-                    title="Your Stats"
-                >
-                    <User className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                    {/* Notification dot for first-time users */}
-                    {!hasAutoShown && (
-                        <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
-                        </span>
-                    )}
-                </Button>
-            </SheetTrigger>
+            {!hideTrigger && (
+                <SheetTrigger asChild>
+                    <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8 sm:h-9 sm:w-9 bg-zinc-900/40 border-zinc-800 hover:bg-zinc-800 hover:border-zinc-700 backdrop-blur-sm transition-all relative"
+                        title="Your Stats"
+                    >
+                        <User className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                        {/* Notification dot for first-time users */}
+                        {!hasAutoShown && (
+                            <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                            </span>
+                        )}
+                    </Button>
+                </SheetTrigger>
+            )}
 
             <SheetContent
                 side="right"

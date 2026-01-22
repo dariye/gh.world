@@ -10,9 +10,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogIn, LogOut, User } from "lucide-react";
+import { LogIn, LogOut, User, Sparkles } from "lucide-react";
 
-export function UserMenu() {
+interface UserMenuProps {
+  onOpenStats?: () => void;
+}
+
+export function UserMenu({ onOpenStats }: UserMenuProps = {}) {
   const { data: session, status } = useSession();
 
   if (status === "loading") {
@@ -60,6 +64,12 @@ export function UserMenu() {
           <p className="text-xs text-muted-foreground">{session.user?.email}</p>
         </div>
         <DropdownMenuSeparator />
+        {onOpenStats && (
+          <DropdownMenuItem onClick={onOpenStats} className="cursor-pointer">
+            <Sparkles className="mr-2 h-4 w-4 text-emerald-400" />
+            Your Stats
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem
           onClick={() => signOut()}
           className="text-destructive focus:text-destructive cursor-pointer"
