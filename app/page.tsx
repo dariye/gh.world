@@ -22,6 +22,7 @@ import KeyboardShortcutsHelp from "@/components/KeyboardShortcutsHelp";
 import { useKeyboardShortcuts } from "@/lib/useKeyboardShortcuts";
 import { SUPPORTED_LANGUAGES } from "@/lib/colors";
 import ActivityLegend from "@/components/ActivityLegend";
+import { ViewerCount } from "@/components/ViewerCount";
 
 export default function Home() {
   // Timeline state
@@ -201,6 +202,9 @@ export default function Home() {
           view the world in github commits
         </p>
         <div className="pointer-events-auto mt-2">
+          <ViewerCount />
+        </div>
+        <div className="pointer-events-auto mt-1">
           <LocationQuickJump onJumpTo={handleJumpToLocation} />
         </div>
       </div>

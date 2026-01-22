@@ -45,4 +45,10 @@ export default defineSchema({
     language: v.union(v.string(), v.null()),
     cachedAt: v.number(),
   }).index("by_repo", ["repo"]),
+
+  presence: defineTable({
+    sessionId: v.string(),
+    region: v.optional(v.string()),
+    lastSeen: v.number(),
+  }).index("by_lastSeen", ["lastSeen"]),
 });
