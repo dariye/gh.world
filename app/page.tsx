@@ -159,24 +159,29 @@ export default function Home() {
         hideTrigger
       />
 
-      {/* Bottom Left: Activity Legend (above timeline) */}
-      <div className="absolute bottom-28 sm:bottom-28 md:bottom-32 left-4 sm:left-5 md:left-6 z-40 pointer-events-none">
-        <ActivityLegend />
+      {/* Bottom Left: Footer info (above timeline) */}
+      <div className="absolute bottom-20 sm:bottom-20 md:bottom-24 left-4 sm:left-5 md:left-6 z-40 flex flex-col gap-2 sm:gap-2.5 md:gap-3">
+        <div className="pointer-events-none">
+          <ActivityLegend />
+        </div>
+        <div className="pointer-events-auto">
+          <CreditsBadge />
+        </div>
       </div>
 
-      {/* Bottom Left: Credits (below legend, above timeline) */}
+{/* Bottom Left: Credits (below legend, above timeline) */}
       <div className="absolute bottom-16 sm:bottom-16 md:bottom-20 left-4 sm:left-5 md:left-6 z-40 pointer-events-auto">
         <CreditsBadge />
       </div>
 
       {/* Bottom Right: Status (above timeline) */}
-<div className="absolute bottom-28 sm:bottom-28 md:bottom-32 right-4 sm:right-5 md:right-6 z-40 pointer-events-auto flex flex-col items-end gap-1.5 sm:gap-1.5 md:gap-2">
+      <div className="absolute bottom-20 sm:bottom-20 md:bottom-24 right-4 sm:right-5 md:right-6 z-40 pointer-events-auto flex flex-col items-end gap-2 sm:gap-2.5 md:gap-3">
         <div className={`text-white/40 text-[9px] sm:text-[9px] md:text-[10px] font-mono bg-card/50 backdrop-blur-sm px-1.5 sm:px-1.5 md:px-2 py-0.5 sm:py-0.5 md:py-1 rounded ${isCountLoading ? 'animate-pulse' : ''}`}>
           {isCountLoading ? '---' : activeCommitCount.toLocaleString()} ACTIVE COMMITS
         </div>
         <div className="flex items-center gap-1.5 sm:gap-1.5 md:gap-2">
           <SunriseMode
-            isActive={sunrise.isSunriseMode}
+isActive={sunrise.isSunriseMode}
             onToggle={sunrise.handleSunriseModeToggle}
             simulatedTime={sunrise.simulatedTime}
           />
