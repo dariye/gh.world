@@ -28,6 +28,8 @@ import {
   getSunriseCameraTarget,
   getSimulatedTime,
 } from "@/lib/sunrise";
+import { SoundToggle } from "@/components/SoundToggle";
+import { useCommitSounds } from "@/lib/useCommitSounds";
 
 export default function Home() {
   // Timeline state
@@ -142,6 +144,9 @@ export default function Home() {
   } : "skip");
 
   const commits = isLive ? liveCommits : playbackCommits;
+
+  // Play sounds for new commits (live mode only)
+  useCommitSounds(commits, isLive);
 
   // Decoupled commit count for the badge
   const liveCount = useQuery(api.commits.getLiveCommitCount, (mounted && isLive) ? {} : "skip");
@@ -283,11 +288,12 @@ export default function Home() {
           {isCountLoading ? '---' : activeCommitCount.toLocaleString()} ACTIVE COMMITS
         </div>
         <div className="flex items-center gap-1.5 sm:gap-2">
-          <SunriseMode
+<SunriseMode
             isActive={isSunriseMode}
             onToggle={handleSunriseModeToggle}
             simulatedTime={simulatedTime}
           />
+          <SoundToggle />
           <LanguageFilter value={selectedLanguage} onChange={setSelectedLanguage} />
           <ProfileSearch />
           <StatsSidebar isOpen={isStatsOpen} onOpenChange={setIsStatsOpen} />
