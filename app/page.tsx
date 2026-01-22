@@ -1,16 +1,11 @@
 "use client";
 
-
-import { useAction, useQuery } from "convex/react";
+import { useQuery } from "convex/react";
+import { useCallback } from "react";
 import { api } from "../convex/_generated/api";
-import { useState, useEffect, useCallback } from "react";
-import GlobeComponent, { Commit, TargetLocation } from "@/components/Globe";
-import LocationQuickJump, { Location } from "@/components/LocationQuickJump";
+import GlobeComponent from "@/components/Globe";
+import LocationQuickJump from "@/components/LocationQuickJump";
 import TimelineControl from "@/components/TimelineControl";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-// import { Info } from "lucide-react";
-
 import LanguageFilter from "@/components/LanguageFilter";
 import CommitDetails from "@/components/CommitDetails";
 import { ModeToggle } from "@/components/ModeToggle";
@@ -20,244 +15,127 @@ import { UserMenu } from "@/components/UserMenu";
 import { PersonalStatsDashboard } from "@/components/PersonalStatsDashboard";
 import KeyboardShortcutsHelp from "@/components/KeyboardShortcutsHelp";
 import { useKeyboardShortcuts } from "@/lib/useKeyboardShortcuts";
-import { SUPPORTED_LANGUAGES } from "@/lib/colors";
 import ActivityLegend from "@/components/ActivityLegend";
 import { CreditsBadge } from "@/components/CreditsBadge";
 import SunriseMode from "@/components/SunriseMode";
-import {
-  SUNRISE_CONFIG,
-  getSunriseCameraTarget,
-  getSimulatedTime,
-} from "@/lib/sunrise";
 import { SoundToggle } from "@/components/SoundToggle";
 import { useCommitSounds } from "@/lib/useCommitSounds";
 import { ViewerCount } from "@/components/ViewerCount";
 
+// Custom hooks for state management
+import { useTimeline } from "@/lib/useTimeline";
+import { useSunriseMode } from "@/lib/useSunriseMode";
+import { useViewport } from "@/lib/useViewport";
+import { useUIState } from "@/lib/useUIState";
+import { useNavigation } from "@/lib/useNavigation";
+
 export default function Home() {
-  // Timeline state
-  const [isLive, setIsLive] = useState(true);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [playbackSpeed, setPlaybackSpeed] = useState(1);
-
-  const [selectedLanguage, setSelectedLanguage] = useState<string | null>(null);
-  const [startTime, setStartTime] = useState(Date.now() - 6 * 60 * 60 * 1000);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  // Mobile/Drawer state
-  const [selectedCommit, setSelectedCommit] = useState<Commit | null>(null);
-  const [isStatsOpen, setIsStatsOpen] = useState(false);
-  const [isHelpOpen, setIsHelpOpen] = useState(false);
-  const [isPersonalDashboardOpen, setIsPersonalDashboardOpen] = useState(false);
-  const [highlightedUser, setHighlightedUser] = useState<string | null>(null);
-
-  // Location quick-jump state
-  const [targetLocation, setTargetLocation] = useState<TargetLocation | null>(null);
-
-  // Sunrise mode state
-  const [isSunriseMode, setIsSunriseMode] = useState(false);
-  const [sunriseStartReal, setSunriseStartReal] = useState<number | null>(null);
-  const [sunriseStartSimulated, setSunriseStartSimulated] = useState<number | null>(null);
-  const [simulatedTime, setSimulatedTime] = useState<Date | null>(null);
-  const [sunriseCameraTarget, setSunriseCameraTarget] = useState<number | null>(null);
-
-  const windowSizeHours = 6;
+  // Get oldest timestamp for timeline bounds
   const oldestTimestamp = useQuery(api.commits.getOldestCommitTimestamp);
-  const minTimeValue = oldestTimestamp ?? (Date.now() - 24 * 60 * 60 * 1000);
-  const maxTimeValue = Date.now();
 
-  // LIVE MODE: Handled by server-side temporal window in getLiveCommits.
-  // No longer need a client-side interval to advance the window.
+  // Timeline state and controls
+  const timeline = useTimeline({
+    windowSizeHours: 6,
+    oldestTimestamp,
+  });
 
-  // TIMELAPSE PLAYBACK MODE
-  useEffect(() => {
-    if (isLive || !isPlaying) return;
+  // UI state (modals, selected items, language filter)
+  const ui = useUIState();
 
-    const interval = setInterval(() => {
-      setStartTime(prev => {
-        // Base speed 1x = 6 hours in 2 minutes (180x acceleration)
-        // 50ms interval * 180 * speed
-        const delta = 50 * 180 * playbackSpeed;
-        const next = prev + delta;
+  // Navigation/location state
+  const navigation = useNavigation();
 
-        // Loop if we hit end (minus window size)
-        const limit = Date.now() - (windowSizeHours * 60 * 60 * 1000);
-        if (next >= limit) {
-          return minTimeValue; // Loop back to start
-        }
-        return next;
-      });
-    }, 50);
+  // Viewport state with debouncing
+  const { debouncedViewport, setViewport } = useViewport({ debounceMs: 300 });
 
-    return () => clearInterval(interval);
-  }, [isLive, isPlaying, playbackSpeed, minTimeValue, windowSizeHours]);
-
-  // Sunrise mode loop - camera follows the sun at 720x speed
-  useEffect(() => {
-    if (!isSunriseMode || sunriseStartReal === null || sunriseStartSimulated === null) return;
-
-    const interval = setInterval(() => {
-      const now = Date.now();
-      const simTime = getSimulatedTime(sunriseStartReal, sunriseStartSimulated, now);
-      setSimulatedTime(simTime);
-
-      // Update startTime for playback queries (sync with simulated time)
-      setStartTime(simTime.getTime() - windowSizeHours * 60 * 60 * 1000 / 2);
-
-      // Calculate camera target to follow the sun
-      const targetLng = getSunriseCameraTarget(simTime);
-      setSunriseCameraTarget(targetLng);
-    }, SUNRISE_CONFIG.UPDATE_INTERVAL);
-
-    return () => clearInterval(interval);
-  }, [isSunriseMode, sunriseStartReal, sunriseStartSimulated, windowSizeHours]);
-
-  // Viewport state for progressive disclosure
-  const [viewport, setViewport] = useState<any>(null);
-  const [debouncedViewport, setDebouncedViewport] = useState<any>(null);
-
-  // Debounce viewport updates to avoid hammering the backend
-  useEffect(() => {
-    if (!viewport) return;
-    const timer = setTimeout(() => {
-      setDebouncedViewport(viewport);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [viewport]);
+  // Sunrise mode
+  const sunrise = useSunriseMode({
+    windowSizeHours: timeline.windowSizeHours,
+    onStartTimeChange: timeline.setStartTime,
+    onExitLive: useCallback(() => {
+      timeline.setIsLive(false);
+      timeline.setIsPlaying(false);
+    }, [timeline]),
+  });
 
   // Fetch commits based on mode
-  const liveCommits = useQuery(api.commits.getLiveCommits, isLive ? {
-    minLat: debouncedViewport?.minLat,
-    maxLat: debouncedViewport?.maxLat,
-    minLng: debouncedViewport?.minLng,
-    maxLng: debouncedViewport?.maxLng,
-  } : "skip");
+  const liveCommits = useQuery(
+    api.commits.getLiveCommits,
+    timeline.isLive
+      ? {
+          minLat: debouncedViewport?.minLat,
+          maxLat: debouncedViewport?.maxLat,
+          minLng: debouncedViewport?.minLng,
+          maxLng: debouncedViewport?.maxLng,
+        }
+      : "skip"
+  );
 
-  const playbackCommits = useQuery(api.commits.getSpatialCommits, !isLive ? {
-    startTime: startTime,
-    endTime: startTime + windowSizeHours * 60 * 60 * 1000,
-    minLat: debouncedViewport?.minLat,
-    maxLat: debouncedViewport?.maxLat,
-    minLng: debouncedViewport?.minLng,
-    maxLng: debouncedViewport?.maxLng,
-  } : "skip");
+  const playbackCommits = useQuery(
+    api.commits.getSpatialCommits,
+    !timeline.isLive
+      ? {
+          startTime: timeline.startTime,
+          endTime: timeline.startTime + timeline.windowSizeHours * 60 * 60 * 1000,
+          minLat: debouncedViewport?.minLat,
+          maxLat: debouncedViewport?.maxLat,
+          minLng: debouncedViewport?.minLng,
+          maxLng: debouncedViewport?.maxLng,
+        }
+      : "skip"
+  );
 
-  const commits = isLive ? liveCommits : playbackCommits;
+  const commits = timeline.isLive ? liveCommits : playbackCommits;
 
   // Play sounds for new commits (live mode only)
-  useCommitSounds(commits, isLive);
+  useCommitSounds(commits, timeline.isLive);
 
   // Decoupled commit count for the badge
-  const liveCount = useQuery(api.commits.getLiveCommitCount, (mounted && isLive) ? {} : "skip");
-  const playbackCount = useQuery(api.commits.getCommitCount, (mounted && !isLive) ? {
-    startTime: startTime,
-    endTime: startTime + windowSizeHours * 60 * 60 * 1000,
-  } : "skip");
+  const liveCount = useQuery(
+    api.commits.getLiveCommitCount,
+    timeline.isLive ? {} : "skip"
+  );
+  const playbackCount = useQuery(
+    api.commits.getCommitCount,
+    !timeline.isLive
+      ? {
+          startTime: timeline.startTime,
+          endTime: timeline.startTime + timeline.windowSizeHours * 60 * 60 * 1000,
+        }
+      : "skip"
+  );
 
-  const activeCommitCount = isLive ? liveCount : playbackCount;
+  const activeCommitCount = timeline.isLive ? liveCount : playbackCount;
   const isCountLoading = activeCommitCount === undefined;
-
-  // Memoized callbacks to prevent unnecessary child re-renders
-  const handleSelectCommit = useCallback((commit: Commit) => {
-    setSelectedCommit(commit);
-  }, []);
-
-  const handleLiveToggle = useCallback((live: boolean) => {
-    setIsLive(live);
-    if (live) setIsPlaying(false);
-  }, []);
-
-  const handlePlayPause = useCallback((playing: boolean) => {
-    if (isLive && playing) {
-      setIsLive(false);
-    }
-    setIsPlaying(playing);
-  }, [isLive]);
-
-  const handleCloseCommitDetails = useCallback(() => {
-    setSelectedCommit(null);
-  }, []);
-
-  const handleJumpToLocation = useCallback((location: Location) => {
-    setTargetLocation({ lat: location.lat, lng: location.lng });
-  }, []);
-
-  // Sunrise mode toggle handler
-  const handleSunriseModeToggle = useCallback((active: boolean) => {
-    setIsSunriseMode(active);
-
-    if (active) {
-      // Start sunrise mode: exit live, set up time tracking
-      setIsLive(false);
-      setIsPlaying(false);
-      const now = Date.now();
-      setSunriseStartReal(now);
-      // Start simulation 6 hours ago for good initial view
-      setSunriseStartSimulated(now - 6 * 60 * 60 * 1000);
-      setSimulatedTime(new Date(now - 6 * 60 * 60 * 1000));
-    } else {
-      // Exit sunrise mode: clear state
-      setSunriseStartReal(null);
-      setSunriseStartSimulated(null);
-      setSimulatedTime(null);
-      setSunriseCameraTarget(null);
-    }
-  }, []);
-
-  // Keyboard shortcut handlers
-  const handleCycleLanguage = useCallback(() => {
-    setSelectedLanguage((current) => {
-      if (current === null) {
-        return SUPPORTED_LANGUAGES[0];
-      }
-      const currentIndex = SUPPORTED_LANGUAGES.indexOf(current as typeof SUPPORTED_LANGUAGES[number]);
-      if (currentIndex === -1 || currentIndex === SUPPORTED_LANGUAGES.length - 1) {
-        return null; // Cycle back to "All"
-      }
-      return SUPPORTED_LANGUAGES[currentIndex + 1];
-    });
-  }, []);
-
-  const handleStepBackward = useCallback(() => {
-    if (isLive) setIsLive(false);
-    setStartTime((prev) => Math.max(minTimeValue, prev - 15 * 60 * 1000)); // Step back 15 minutes
-  }, [isLive, minTimeValue]);
-
-  const handleStepForward = useCallback(() => {
-    if (isLive) setIsLive(false);
-    const limit = Date.now() - windowSizeHours * 60 * 60 * 1000;
-    setStartTime((prev) => Math.min(limit, prev + 15 * 60 * 1000)); // Step forward 15 minutes
-  }, [isLive, windowSizeHours]);
-
-  const handleCloseModal = useCallback(() => {
-    setSelectedCommit(null);
-    setIsStatsOpen(false);
-    setIsHelpOpen(false);
-  }, []);
 
   // Keyboard shortcuts
   useKeyboardShortcuts({
-    onTogglePlayPause: () => handlePlayPause(!isPlaying),
-    onToggleLive: () => handleLiveToggle(!isLive),
-    onSetSpeed: setPlaybackSpeed,
-    onStepBackward: handleStepBackward,
-    onStepForward: handleStepForward,
-    onCloseModal: handleCloseModal,
-    onToggleStats: () => setIsStatsOpen((prev) => !prev),
-    onShowHelp: () => setIsHelpOpen(true),
-    onCycleLanguage: handleCycleLanguage,
+    onTogglePlayPause: () => timeline.handlePlayPause(!timeline.isPlaying),
+    onToggleLive: () => timeline.handleLiveToggle(!timeline.isLive),
+    onSetSpeed: timeline.setPlaybackSpeed,
+    onStepBackward: timeline.handleStepBackward,
+    onStepForward: timeline.handleStepForward,
+    onCloseModal: ui.handleCloseModal,
+    onToggleStats: () => ui.setIsStatsOpen((prev) => !prev),
+    onShowHelp: () => ui.setIsHelpOpen(true),
+    onCycleLanguage: ui.handleCycleLanguage,
     isEnabled: true,
   });
+
+  // Compute view time for globe (use maxTimeValue when live to avoid impure Date.now())
+  const viewTime = timeline.isLive
+    ? timeline.maxTimeValue
+    : timeline.startTime + (timeline.windowSizeHours * 60 * 60 * 1000) / 2;
 
   return (
     <main className="relative w-full h-screen bg-[#060a0f] transition-colors duration-500 overflow-hidden">
       {/* Top Left: Branding */}
       <div className="absolute top-4 left-4 sm:top-6 sm:left-6 z-50 pointer-events-none flex flex-col gap-1">
         <h1 className="text-xl sm:text-2xl font-bold tracking-tighter text-white">
-          gh.world<span className="text-[8px] sm:text-[10px] font-normal text-zinc-600 ml-1 align-super">v1.0.4</span>
+          gh.world
+          <span className="text-[8px] sm:text-[10px] font-normal text-zinc-600 ml-1 align-super">
+            v1.0.4
+          </span>
         </h1>
         <p className="text-white/40 text-[10px] sm:text-xs font-mono lowercase tracking-widest">
           view the world in github commits
@@ -266,21 +144,21 @@ export default function Home() {
           <ViewerCount />
         </div>
         <div className="pointer-events-auto mt-1">
-          <LocationQuickJump onJumpTo={handleJumpToLocation} />
+          <LocationQuickJump onJumpTo={navigation.handleJumpToLocation} />
         </div>
       </div>
 
       {/* Top Right: Controls */}
       <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-50 pointer-events-auto flex items-center gap-2">
-        <UserMenu onOpenStats={() => setIsPersonalDashboardOpen(true)} />
+        <UserMenu onOpenStats={() => ui.setIsPersonalDashboardOpen(true)} />
         <ModeToggle />
       </div>
 
       {/* Personal Stats Dashboard (triggered from UserMenu) */}
       <PersonalStatsDashboard
-        isOpen={isPersonalDashboardOpen}
-        onOpenChange={setIsPersonalDashboardOpen}
-        onHighlightUser={setHighlightedUser}
+        isOpen={ui.isPersonalDashboardOpen}
+        onOpenChange={ui.setIsPersonalDashboardOpen}
+        onHighlightUser={ui.setHighlightedUser}
         hideTrigger
       />
 
@@ -294,22 +172,23 @@ export default function Home() {
         <CreditsBadge />
       </div>
 
-
       {/* Bottom Right: Status (above timeline) */}
       <div className="absolute bottom-28 sm:bottom-32 right-4 sm:right-6 z-40 pointer-events-auto flex flex-col items-end gap-1.5 sm:gap-2">
-        <div className={`text-white/40 text-[9px] sm:text-[10px] font-mono bg-card/50 backdrop-blur-sm px-1.5 sm:px-2 py-0.5 sm:py-1 rounded ${isCountLoading ? 'animate-pulse' : ''}`}>
-          {isCountLoading ? '---' : activeCommitCount.toLocaleString()} ACTIVE COMMITS
+        <div
+          className={`text-white/40 text-[9px] sm:text-[10px] font-mono bg-card/50 backdrop-blur-sm px-1.5 sm:px-2 py-0.5 sm:py-1 rounded ${isCountLoading ? "animate-pulse" : ""}`}
+        >
+          {isCountLoading ? "---" : activeCommitCount.toLocaleString()} ACTIVE COMMITS
         </div>
         <div className="flex items-center gap-1.5 sm:gap-2">
-<SunriseMode
-            isActive={isSunriseMode}
-            onToggle={handleSunriseModeToggle}
-            simulatedTime={simulatedTime}
+          <SunriseMode
+            isActive={sunrise.isSunriseMode}
+            onToggle={sunrise.handleSunriseModeToggle}
+            simulatedTime={sunrise.simulatedTime}
           />
           <SoundToggle />
-          <LanguageFilter value={selectedLanguage} onChange={setSelectedLanguage} />
+          <LanguageFilter value={ui.selectedLanguage} onChange={ui.setSelectedLanguage} />
           <ProfileSearch />
-          <StatsSidebar isOpen={isStatsOpen} onOpenChange={setIsStatsOpen} />
+          <StatsSidebar isOpen={ui.isStatsOpen} onOpenChange={ui.setIsStatsOpen} />
         </div>
       </div>
 
@@ -317,15 +196,17 @@ export default function Home() {
       <div className="absolute inset-0 z-0">
         <GlobeComponent
           commits={commits ?? []}
-          selectedLanguage={selectedLanguage}
-          viewTime={isLive ? Date.now() : startTime + windowSizeHours * 60 * 60 * 1000 / 2}
-          onSelectCommit={handleSelectCommit}
+          selectedLanguage={ui.selectedLanguage}
+          viewTime={viewTime}
+          onSelectCommit={ui.handleSelectCommit}
           onViewportChange={setViewport}
-          isPlaying={isPlaying}
-          targetLocation={targetLocation}
-          highlightedUser={highlightedUser}
-          sunriseCameraTarget={sunriseCameraTarget}
-          onSunriseInteraction={isSunriseMode ? () => handleSunriseModeToggle(false) : undefined}
+          isPlaying={timeline.isPlaying}
+          targetLocation={navigation.targetLocation}
+          highlightedUser={ui.highlightedUser}
+          sunriseCameraTarget={sunrise.sunriseCameraTarget}
+          onSunriseInteraction={
+            sunrise.isSunriseMode ? () => sunrise.handleSunriseModeToggle(false) : undefined
+          }
         />
       </div>
 
@@ -333,34 +214,38 @@ export default function Home() {
       <div
         className="absolute inset-0 z-10 pointer-events-none"
         style={{
-          background: 'radial-gradient(ellipse at center, transparent 40%, rgba(6, 10, 15, 0.4) 70%, rgba(6, 10, 15, 0.8) 100%)',
+          background:
+            "radial-gradient(ellipse at center, transparent 40%, rgba(6, 10, 15, 0.4) 70%, rgba(6, 10, 15, 0.8) 100%)",
         }}
       />
 
       {/* Timeline Control */}
       <TimelineControl
-        minTime={minTimeValue}
-        maxTime={maxTimeValue}
-        startTime={startTime}
-        onStartTimeChange={setStartTime}
-        isLive={isLive}
-        onLiveToggle={handleLiveToggle}
-        windowSizeHours={windowSizeHours}
-        isPlaying={isPlaying}
-        onPlayPause={handlePlayPause}
-        playbackSpeed={playbackSpeed}
-        onPlaybackSpeedChange={setPlaybackSpeed}
+        minTime={timeline.minTimeValue}
+        maxTime={timeline.maxTimeValue}
+        startTime={timeline.startTime}
+        onStartTimeChange={timeline.setStartTime}
+        isLive={timeline.isLive}
+        onLiveToggle={timeline.handleLiveToggle}
+        windowSizeHours={timeline.windowSizeHours}
+        isPlaying={timeline.isPlaying}
+        onPlayPause={timeline.handlePlayPause}
+        playbackSpeed={timeline.playbackSpeed}
+        onPlaybackSpeedChange={timeline.setPlaybackSpeed}
       />
 
       {/* Mobile Drawers */}
       <CommitDetails
-        commit={selectedCommit}
-        isOpen={!!selectedCommit}
-        onClose={() => setSelectedCommit(null)}
+        commit={ui.selectedCommit}
+        isOpen={!!ui.selectedCommit}
+        onClose={() => ui.setSelectedCommit(null)}
       />
 
       {/* Keyboard Shortcuts Help */}
-      <KeyboardShortcutsHelp isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
+      <KeyboardShortcutsHelp
+        isOpen={ui.isHelpOpen}
+        onClose={() => ui.setIsHelpOpen(false)}
+      />
     </main>
   );
 }
