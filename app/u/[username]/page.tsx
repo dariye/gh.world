@@ -11,10 +11,13 @@ import { useState } from "react";
 
 export default function ProfilePage() {
     const params = useParams();
-    const username = params.username as string;
+    const username = typeof params.username === 'string' ? params.username : null;
     const [copied, setCopied] = useState(false);
 
-    const profileStats = useQuery(api.profiles.getProfileStats, { username });
+    const profileStats = useQuery(
+        api.profiles.getProfileStats,
+        username ? { username } : "skip"
+    );
 
     const handleCopyLink = () => {
         const url = window.location.href;
