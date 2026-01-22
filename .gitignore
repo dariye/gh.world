@@ -63,3 +63,6 @@ state.json
 logs/
 settings/
 .events.jsonl
+
+# Gas Town (added by gt)
+.claude/
