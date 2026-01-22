@@ -11,6 +11,7 @@ import {
     getContributionAltitude,
 } from "@/lib/colors";
 import { createDayNightMaterial, updateSunDirection } from "./DayNightShader";
+import { SUNRISE_CONFIG, lerpLongitude } from "@/lib/sunrise";
 
 const Globe = dynamic(() => import("react-globe.gl"), {
     ssr: false,
@@ -72,7 +73,9 @@ function GlobeComponent({
     onViewportChange,
     isPlaying = false,
     targetLocation,
-    highlightedUser
+    highlightedUser,
+    sunriseCameraTarget,
+    onSunriseInteraction
 }: {
     commits: Commit[],
     selectedLanguage: string | null,
@@ -82,7 +85,11 @@ function GlobeComponent({
     isPlaying?: boolean,
     targetLocation?: TargetLocation | null,
     /** Username to highlight on the globe (their commits will stand out) */
-    highlightedUser?: string | null
+    highlightedUser?: string | null,
+    /** Target longitude for sunrise mode camera follow */
+    sunriseCameraTarget?: number | null,
+    /** Callback when user interacts during sunrise mode (to pause/exit) */
+    onSunriseInteraction?: () => void
 }) {
     const globeRef = useRef<any>(null);
 const autoRotateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -447,6 +454,25 @@ return createDayNightMaterial();
         }, 800); // 800ms smooth transition
     }, [targetLocation]);
 
+    // Sunrise mode: smoothly follow the sun
+    useEffect(() => {
+        if (sunriseCameraTarget === null || sunriseCameraTarget === undefined || !globeRef.current) return;
+
+        const currentPov = globeRef.current.pointOfView();
+
+        // Lerp camera longitude toward target
+        const newLng = lerpLongitude(currentPov.lng, sunriseCameraTarget, SUNRISE_CONFIG.CAMERA_LERP);
+
+        // Only update if there's meaningful movement
+        if (Math.abs(newLng - currentPov.lng) > 0.01) {
+            globeRef.current.pointOfView({
+                lat: SUNRISE_CONFIG.CAMERA_LAT,
+                lng: newLng,
+                altitude: SUNRISE_CONFIG.CAMERA_ALTITUDE
+            }, 0); // Instant update for smooth lerp
+        }
+    }, [sunriseCameraTarget]);
+
     const globeContainerRef = useRef<HTMLDivElement>(null);
     const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
 
@@ -489,6 +515,11 @@ return createDayNightMaterial();
             if (autoRotateTimeoutRef.current) {
                 clearTimeout(autoRotateTimeoutRef.current);
             }
+
+            // Exit sunrise mode on user interaction
+            if (onSunriseInteraction) {
+                onSunriseInteraction();
+            }
         };
 
         // Handler to schedule auto-rotate resume after interaction ends
@@ -517,7 +548,7 @@ return createDayNightMaterial();
                 clearTimeout(autoRotateTimeoutRef.current);
             }
         };
-    }, []);
+    }, [onSunriseInteraction]);
 
     // Keyboard navigation controls
     useEffect(() => {

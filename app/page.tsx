@@ -22,6 +22,12 @@ import KeyboardShortcutsHelp from "@/components/KeyboardShortcutsHelp";
 import { useKeyboardShortcuts } from "@/lib/useKeyboardShortcuts";
 import { SUPPORTED_LANGUAGES } from "@/lib/colors";
 import ActivityLegend from "@/components/ActivityLegend";
+import SunriseMode from "@/components/SunriseMode";
+import {
+  SUNRISE_CONFIG,
+  getSunriseCameraTarget,
+  getSimulatedTime,
+} from "@/lib/sunrise";
 
 export default function Home() {
   // Timeline state
@@ -46,6 +52,13 @@ export default function Home() {
 
   // Location quick-jump state
   const [targetLocation, setTargetLocation] = useState<TargetLocation | null>(null);
+
+  // Sunrise mode state
+  const [isSunriseMode, setIsSunriseMode] = useState(false);
+  const [sunriseStartReal, setSunriseStartReal] = useState<number | null>(null);
+  const [sunriseStartSimulated, setSunriseStartSimulated] = useState<number | null>(null);
+  const [simulatedTime, setSimulatedTime] = useState<Date | null>(null);
+  const [sunriseCameraTarget, setSunriseCameraTarget] = useState<number | null>(null);
 
   const windowSizeHours = 6;
   const oldestTimestamp = useQuery(api.commits.getOldestCommitTimestamp);
@@ -77,6 +90,26 @@ export default function Home() {
 
     return () => clearInterval(interval);
   }, [isLive, isPlaying, playbackSpeed, minTimeValue, windowSizeHours]);
+
+  // Sunrise mode loop - camera follows the sun at 720x speed
+  useEffect(() => {
+    if (!isSunriseMode || sunriseStartReal === null || sunriseStartSimulated === null) return;
+
+    const interval = setInterval(() => {
+      const now = Date.now();
+      const simTime = getSimulatedTime(sunriseStartReal, sunriseStartSimulated, now);
+      setSimulatedTime(simTime);
+
+      // Update startTime for playback queries (sync with simulated time)
+      setStartTime(simTime.getTime() - windowSizeHours * 60 * 60 * 1000 / 2);
+
+      // Calculate camera target to follow the sun
+      const targetLng = getSunriseCameraTarget(simTime);
+      setSunriseCameraTarget(targetLng);
+    }, SUNRISE_CONFIG.UPDATE_INTERVAL);
+
+    return () => clearInterval(interval);
+  }, [isSunriseMode, sunriseStartReal, sunriseStartSimulated, windowSizeHours]);
 
   // Viewport state for progressive disclosure
   const [viewport, setViewport] = useState<any>(null);
@@ -143,6 +176,28 @@ export default function Home() {
 
   const handleJumpToLocation = useCallback((location: Location) => {
     setTargetLocation({ lat: location.lat, lng: location.lng });
+  }, []);
+
+  // Sunrise mode toggle handler
+  const handleSunriseModeToggle = useCallback((active: boolean) => {
+    setIsSunriseMode(active);
+
+    if (active) {
+      // Start sunrise mode: exit live, set up time tracking
+      setIsLive(false);
+      setIsPlaying(false);
+      const now = Date.now();
+      setSunriseStartReal(now);
+      // Start simulation 6 hours ago for good initial view
+      setSunriseStartSimulated(now - 6 * 60 * 60 * 1000);
+      setSimulatedTime(new Date(now - 6 * 60 * 60 * 1000));
+    } else {
+      // Exit sunrise mode: clear state
+      setSunriseStartReal(null);
+      setSunriseStartSimulated(null);
+      setSimulatedTime(null);
+      setSunriseCameraTarget(null);
+    }
   }, []);
 
   // Keyboard shortcut handlers
@@ -228,6 +283,11 @@ export default function Home() {
           {isCountLoading ? '---' : activeCommitCount.toLocaleString()} ACTIVE COMMITS
         </div>
         <div className="flex items-center gap-1.5 sm:gap-2">
+          <SunriseMode
+            isActive={isSunriseMode}
+            onToggle={handleSunriseModeToggle}
+            simulatedTime={simulatedTime}
+          />
           <LanguageFilter value={selectedLanguage} onChange={setSelectedLanguage} />
           <ProfileSearch />
           <StatsSidebar isOpen={isStatsOpen} onOpenChange={setIsStatsOpen} />
@@ -245,6 +305,8 @@ export default function Home() {
           isPlaying={isPlaying}
           targetLocation={targetLocation}
           highlightedUser={highlightedUser}
+          sunriseCameraTarget={sunriseCameraTarget}
+          onSunriseInteraction={isSunriseMode ? () => handleSunriseModeToggle(false) : undefined}
         />
       </div>
 
