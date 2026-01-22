@@ -22,14 +22,11 @@ import {
     Area,
     LineChart,
     Line,
-    RadialBarChart,
-    RadialBar,
     XAxis,
     YAxis,
     CartesianGrid,
     Tooltip,
     ResponsiveContainer,
-    Legend,
 } from "recharts";
 
 // ============================================
@@ -119,6 +116,52 @@ function CustomTooltip({ active, payload, label }: any) {
 }
 
 // ============================================
+// LANGUAGE BAR COMPONENT
+// ============================================
+
+interface LanguageBarData {
+    name: string;
+    value: number;
+    percent: number;
+    fill: string;
+}
+
+function LanguageBar({ data, maxValue }: { data: LanguageBarData; maxValue: number }) {
+    const barWidth = (data.value / maxValue) * 100;
+
+    return (
+        <div className="group flex items-center gap-3 py-1.5">
+            <div
+                className="w-2 h-2 rounded-full flex-shrink-0 transition-transform group-hover:scale-125"
+                style={{ backgroundColor: data.fill }}
+            />
+            <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between mb-1">
+                    <span className="text-[11px] font-mono text-zinc-300 truncate pr-2">
+                        {data.name}
+                    </span>
+                    <span className="text-[10px] font-mono text-zinc-500 tabular-nums flex-shrink-0">
+                        {data.percent.toFixed(1)}%
+                    </span>
+                </div>
+                <div className="h-1.5 bg-zinc-900 rounded-full overflow-hidden">
+                    <div
+                        className="h-full rounded-full transition-all duration-500 ease-out"
+                        style={{
+                            width: `${barWidth}%`,
+                            backgroundColor: data.fill,
+                        }}
+                    />
+                </div>
+            </div>
+            <span className="text-[10px] font-mono text-zinc-600 tabular-nums w-12 text-right flex-shrink-0">
+                {data.value.toLocaleString()}
+            </span>
+        </div>
+    );
+}
+
+// ============================================
 // MAIN DRAWER COMPONENT
 // ============================================
 
@@ -131,9 +174,46 @@ const LANGUAGE_COLORS: Record<string, string> = {
     Java: "#B07219",
     Ruby: "#CC342D",
     "C++": "#F34B7D",
+    "C#": "#178600",
+    C: "#555555",
     PHP: "#4F5D95",
     Swift: "#F05138",
     Kotlin: "#A97BFF",
+    Scala: "#C22D40",
+    Shell: "#89E051",
+    Bash: "#89E051",
+    PowerShell: "#012456",
+    Perl: "#0298C3",
+    R: "#198CE7",
+    Lua: "#000080",
+    Dart: "#00B4AB",
+    Elixir: "#6E4A7E",
+    Clojure: "#DB5855",
+    Haskell: "#5E5086",
+    Julia: "#A270BA",
+    "Objective-C": "#438EFF",
+    Groovy: "#4298B8",
+    HTML: "#E34C26",
+    CSS: "#563D7C",
+    SCSS: "#C6538C",
+    Vue: "#41B883",
+    Svelte: "#FF3E00",
+    SQL: "#E38C00",
+    YAML: "#CB171E",
+    JSON: "#292929",
+    Markdown: "#083FA1",
+    Dockerfile: "#384D54",
+    Makefile: "#427819",
+    Terraform: "#5C4EE5",
+    HCL: "#5C4EE5",
+    Nix: "#7E7EFF",
+    Zig: "#EC915C",
+    OCaml: "#3BE133",
+    "F#": "#B845FC",
+    Erlang: "#B83998",
+    Nim: "#FFE953",
+    Crystal: "#000100",
+    V: "#4F87C4",
     Other: "#6B7280",
 };
 
@@ -153,18 +233,41 @@ export function StatsSidebar({ isOpen: controlledIsOpen, onOpenChange }: StatsSi
 
     const totalCommits = currentStats?.totalCommits || 0;
 
-    // Transform language data for radial chart
+    // Transform language data for bar chart - show all languages, group small ones
     const languageData = useMemo(() => {
         if (!currentStats?.byLanguage) return [];
 
-        return Object.entries(currentStats.byLanguage)
+        const entries = Object.entries(currentStats.byLanguage);
+        const total = entries.reduce((sum, [, val]) => sum + val, 0);
+        if (total === 0) return [];
+
+        // Sort by value descending
+        const sorted = entries
             .map(([name, value]) => ({
                 name,
                 value,
+                percent: (value / total) * 100,
                 fill: LANGUAGE_COLORS[name] || LANGUAGE_COLORS.Other,
             }))
-            .sort((a, b) => b.value - a.value)
-            .slice(0, 6);
+            .sort((a, b) => b.value - a.value);
+
+        // Group languages under 1% into "Other"
+        const threshold = 1;
+        const significant = sorted.filter(d => d.percent >= threshold);
+        const small = sorted.filter(d => d.percent < threshold);
+
+        if (small.length > 0) {
+            const otherValue = small.reduce((sum, d) => sum + d.value, 0);
+            const otherPercent = (otherValue / total) * 100;
+            significant.push({
+                name: `Other (${small.length})`,
+                value: otherValue,
+                percent: otherPercent,
+                fill: LANGUAGE_COLORS.Other,
+            });
+        }
+
+        return significant;
     }, [currentStats]);
 
     // Transform historical data for area/line charts
@@ -218,35 +321,22 @@ export function StatsSidebar({ isOpen: controlledIsOpen, onOpenChange }: StatsSi
                             </p>
                         </div>
 
-                        {/* ========== LANGUAGE RADIAL ========== */}
-                        <ChartSection title="Primary Languages" badge="top 6">
-                            <div className="h-[200px] -mx-4">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <RadialBarChart
-                                        cx="50%"
-                                        cy="50%"
-                                        innerRadius="30%"
-                                        outerRadius="100%"
-                                        data={languageData}
-                                        startAngle={90}
-                                        endAngle={-270}
-                                    >
-                                        <RadialBar
-                                            dataKey="value"
-                                            cornerRadius={10}
-                                            background={{ fill: "#18181b" }}
+                        {/* ========== LANGUAGE BREAKDOWN ========== */}
+                        <ChartSection title="Languages" badge={`${languageData.length} tracked`}>
+                            <div className="max-h-[280px] overflow-y-auto custom-scrollbar pr-1 -mr-1">
+                                {languageData.length > 0 ? (
+                                    languageData.map((lang) => (
+                                        <LanguageBar
+                                            key={lang.name}
+                                            data={lang}
+                                            maxValue={languageData[0]?.value || 1}
                                         />
-                                        <Tooltip content={<CustomTooltip />} />
-                                        <Legend
-                                            iconType="circle"
-                                            iconSize={6}
-                                            layout="vertical"
-                                            verticalAlign="middle"
-                                            align="right"
-                                            wrapperStyle={{ fontSize: "10px", color: "#71717a", fontFamily: "monospace" }}
-                                        />
-                                    </RadialBarChart>
-                                </ResponsiveContainer>
+                                    ))
+                                ) : (
+                                    <p className="text-[11px] text-zinc-600 font-mono py-4 text-center">
+                                        No language data yet
+                                    </p>
+                                )}
                             </div>
                         </ChartSection>
 
