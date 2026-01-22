@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { BarChart3 } from "lucide-react";
+import { useReducedMotion } from "@/lib/useReducedMotion";
 
 const Separator = ({ className }: { className?: string }) => (
     <div className={`h-[1px] w-full bg-zinc-900 ${className}`} />
@@ -34,12 +35,20 @@ import {
 
 // ============================================
 // ANIMATED COUNTER COMPONENT
+// Respects prefers-reduced-motion (WCAG 2.3.3)
 // ============================================
 
 function AnimatedCounter({ value, duration = 2000 }: { value: number; duration?: number }) {
     const [displayValue, setDisplayValue] = useState(0);
+    const prefersReducedMotion = useReducedMotion();
 
     useEffect(() => {
+        // Skip animation if user prefers reduced motion
+        if (prefersReducedMotion) {
+            setDisplayValue(value);
+            return;
+        }
+
         let startTime: number;
         let animationFrame: number;
 
@@ -57,7 +66,7 @@ function AnimatedCounter({ value, duration = 2000 }: { value: number; duration?:
 
         animationFrame = requestAnimationFrame(animate);
         return () => cancelAnimationFrame(animationFrame);
-    }, [value, duration]);
+    }, [value, duration, prefersReducedMotion]);
 
     return (
         <span className="tabular-nums">

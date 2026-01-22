@@ -3,8 +3,10 @@
 import { useState, useEffect } from "react";
 import { Globe, MapPin, ExternalLink } from "lucide-react";
 import { LanguageBar } from "./LanguageBar";
+import { useReducedMotion } from "@/lib/useReducedMotion";
 
 // Animated counter component (same as StatsSidebar)
+// Respects prefers-reduced-motion (WCAG 2.3.3)
 function AnimatedCounter({
     value,
     duration = 1500,
@@ -13,8 +15,15 @@ function AnimatedCounter({
     duration?: number;
 }) {
     const [displayValue, setDisplayValue] = useState(0);
+    const prefersReducedMotion = useReducedMotion();
 
     useEffect(() => {
+        // Skip animation if user prefers reduced motion
+        if (prefersReducedMotion) {
+            setDisplayValue(value);
+            return;
+        }
+
         let startTime: number;
         let animationFrame: number;
 
@@ -32,7 +41,7 @@ function AnimatedCounter({
 
         animationFrame = requestAnimationFrame(animate);
         return () => cancelAnimationFrame(animationFrame);
-    }, [value, duration]);
+    }, [value, duration, prefersReducedMotion]);
 
     return <span className="tabular-nums">{displayValue.toLocaleString()}</span>;
 }
