@@ -16,6 +16,7 @@ import CommitDetails from "@/components/CommitDetails";
 import { ModeToggle } from "@/components/ModeToggle";
 import { StatsSidebar } from "@/components/StatsSidebar";
 import { ProfileSearch } from "@/components/ProfileSearch";
+import { UserMenu } from "@/components/UserMenu";
 import KeyboardShortcutsHelp from "@/components/KeyboardShortcutsHelp";
 import { useKeyboardShortcuts } from "@/lib/useKeyboardShortcuts";
 import { SUPPORTED_LANGUAGES } from "@/lib/colors";
@@ -203,6 +204,7 @@ export default function Home() {
 
       {/* Top Right: Controls */}
       <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-50 pointer-events-auto flex items-center gap-2">
+        <UserMenu />
         <ModeToggle />
       </div>
 
