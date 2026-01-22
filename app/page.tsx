@@ -22,6 +22,8 @@ import KeyboardShortcutsHelp from "@/components/KeyboardShortcutsHelp";
 import { useKeyboardShortcuts } from "@/lib/useKeyboardShortcuts";
 import { SUPPORTED_LANGUAGES } from "@/lib/colors";
 import ActivityLegend from "@/components/ActivityLegend";
+import { SoundToggle } from "@/components/SoundToggle";
+import { useCommitSounds } from "@/lib/useCommitSounds";
 
 export default function Home() {
   // Timeline state
@@ -109,6 +111,9 @@ export default function Home() {
   } : "skip");
 
   const commits = isLive ? liveCommits : playbackCommits;
+
+  // Play sounds for new commits (live mode only)
+  useCommitSounds(commits, isLive);
 
   // Decoupled commit count for the badge
   const liveCount = useQuery(api.commits.getLiveCommitCount, (mounted && isLive) ? {} : "skip");
@@ -228,6 +233,7 @@ export default function Home() {
           {isCountLoading ? '---' : activeCommitCount.toLocaleString()} ACTIVE COMMITS
         </div>
         <div className="flex items-center gap-1.5 sm:gap-2">
+          <SoundToggle />
           <LanguageFilter value={selectedLanguage} onChange={setSelectedLanguage} />
           <ProfileSearch />
           <StatsSidebar isOpen={isStatsOpen} onOpenChange={setIsStatsOpen} />
