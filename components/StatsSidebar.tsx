@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { BarChart3 } from "lucide-react";
+import { BarChart3, Globe, TrendingUp, TrendingDown, Minus, Clock } from "lucide-react";
 
 const Separator = ({ className }: { className?: string }) => (
     <div className={`h-[1px] w-full bg-zinc-900 ${className}`} />
@@ -24,12 +24,15 @@ import {
     Line,
     RadialBarChart,
     RadialBar,
+    BarChart,
+    Bar,
     XAxis,
     YAxis,
     CartesianGrid,
     Tooltip,
     ResponsiveContainer,
     Legend,
+    Cell,
 } from "recharts";
 
 // ============================================
@@ -137,6 +140,75 @@ const LANGUAGE_COLORS: Record<string, string> = {
     Other: "#6B7280",
 };
 
+// ============================================
+// REGION COLORS
+// ============================================
+
+const REGION_COLORS: Record<string, string> = {
+    "North America": "#3B82F6",
+    "South America": "#10B981",
+    "Europe": "#8B5CF6",
+    "Africa": "#F59E0B",
+    "Asia": "#EF4444",
+    "Oceania": "#06B6D4",
+};
+
+// ============================================
+// TAB BUTTON COMPONENT
+// ============================================
+
+function TabButton({
+    active,
+    onClick,
+    children,
+    icon: Icon,
+}: {
+    active: boolean;
+    onClick: () => void;
+    children: React.ReactNode;
+    icon: React.ElementType;
+}) {
+    return (
+        <button
+            onClick={onClick}
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-lg transition-all ${
+                active
+                    ? "bg-zinc-800 text-zinc-100"
+                    : "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900/50"
+            }`}
+        >
+            <Icon className="h-3 w-3" />
+            {children}
+        </button>
+    );
+}
+
+// ============================================
+// TREND INDICATOR
+// ============================================
+
+function TrendIndicator({ trend, change }: { trend: "up" | "down" | "stable"; change: number }) {
+    if (trend === "up") {
+        return (
+            <span className="flex items-center gap-0.5 text-emerald-400 text-[9px] font-mono">
+                <TrendingUp className="h-3 w-3" />+{change}%
+            </span>
+        );
+    }
+    if (trend === "down") {
+        return (
+            <span className="flex items-center gap-0.5 text-red-400 text-[9px] font-mono">
+                <TrendingDown className="h-3 w-3" />{change}%
+            </span>
+        );
+    }
+    return (
+        <span className="flex items-center gap-0.5 text-zinc-500 text-[9px] font-mono">
+            <Minus className="h-3 w-3" />stable
+        </span>
+    );
+}
+
 interface StatsSidebarProps {
     isOpen?: boolean;
     onOpenChange?: (open: boolean) => void;
@@ -144,12 +216,33 @@ interface StatsSidebarProps {
 
 export function StatsSidebar({ isOpen: controlledIsOpen, onOpenChange }: StatsSidebarProps = {}) {
     const [internalIsOpen, setInternalIsOpen] = useState(false);
+    const [activeTab, setActiveTab] = useState<"overview" | "global">("overview");
 
     // Support both controlled and uncontrolled modes
     const isOpen = controlledIsOpen !== undefined ? controlledIsOpen : internalIsOpen;
     const setIsOpen = onOpenChange || setInternalIsOpen;
+
+    // Overview data
     const currentStats = useQuery(api.stats.getCurrentMonthStats);
     const historicalStats = useQuery(api.stats.getHistoricalStats, { days: 7 });
+
+    // Global activity data (only fetch when on global tab to save resources)
+    const hourlyActivity = useQuery(
+        api.stats.getHourlyActivity,
+        activeTab === "global" ? {} : "skip"
+    );
+    const regionalActivity = useQuery(
+        api.stats.getRegionalActivity,
+        activeTab === "global" ? {} : "skip"
+    );
+    const languageTrends = useQuery(
+        api.stats.getLanguageTrends,
+        activeTab === "global" ? {} : "skip"
+    );
+    const peakActivity = useQuery(
+        api.stats.getPeakActivityByRegion,
+        activeTab === "global" ? {} : "skip"
+    );
 
     const totalCommits = currentStats?.totalCommits || 0;
 
@@ -203,134 +296,391 @@ export function StatsSidebar({ isOpen: controlledIsOpen, onOpenChange }: StatsSi
                         </span>
                         LIVE GLOBAL INSIGHTS
                     </SheetTitle>
+
+                    {/* Tab Navigation */}
+                    <div className="flex gap-1 mt-3 bg-zinc-900/30 p-1 rounded-lg">
+                        <TabButton
+                            active={activeTab === "overview"}
+                            onClick={() => setActiveTab("overview")}
+                            icon={BarChart3}
+                        >
+                            Overview
+                        </TabButton>
+                        <TabButton
+                            active={activeTab === "global"}
+                            onClick={() => setActiveTab("global")}
+                            icon={Globe}
+                        >
+                            Global Activity
+                        </TabButton>
+                    </div>
                 </SheetHeader>
 
                 <div className="flex-1 overflow-y-auto custom-scrollbar">
-                    <div className="p-6 space-y-8">
-
-                        {/* ========== BIG TICKER ========== */}
-                        <div className="bg-gradient-to-br from-zinc-900/50 to-transparent border border-zinc-900 rounded-xl p-6 shadow-2xl">
-                            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500 mb-3">
-                                Total Commits Tracked
-                            </p>
-                            <p className="text-4xl font-bold text-zinc-100 tracking-tighter">
-                                <AnimatedCounter value={totalCommits} />
-                            </p>
-                        </div>
-
-                        {/* ========== LANGUAGE RADIAL ========== */}
-                        <ChartSection title="Primary Languages" badge="top 6">
-                            <div className="h-[200px] -mx-4">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <RadialBarChart
-                                        cx="50%"
-                                        cy="50%"
-                                        innerRadius="30%"
-                                        outerRadius="100%"
-                                        data={languageData}
-                                        startAngle={90}
-                                        endAngle={-270}
-                                    >
-                                        <RadialBar
-                                            dataKey="value"
-                                            cornerRadius={10}
-                                            background={{ fill: "#18181b" }}
-                                        />
-                                        <Tooltip content={<CustomTooltip />} />
-                                        <Legend
-                                            iconType="circle"
-                                            iconSize={6}
-                                            layout="vertical"
-                                            verticalAlign="middle"
-                                            align="right"
-                                            wrapperStyle={{ fontSize: "10px", color: "#71717a", fontFamily: "monospace" }}
-                                        />
-                                    </RadialBarChart>
-                                </ResponsiveContainer>
-                            </div>
-                        </ChartSection>
-
-                        <Separator className="bg-zinc-900" />
-
-                        {/* ========== CUMULATIVE AREA ========== */}
-                        <ChartSection title="Activity Trend" badge="last 7 days">
-                            <div className="h-[160px] -mx-4">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <AreaChart data={timeSeriesData}>
-                                        <defs>
-                                            <linearGradient id="trendGradient" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="0%" stopColor="#10B981" stopOpacity={0.2} />
-                                                <stop offset="100%" stopColor="#10B981" stopOpacity={0} />
-                                            </linearGradient>
-                                        </defs>
-                                        <CartesianGrid strokeDasharray="3 3" stroke="#18181b" vertical={false} />
-                                        <XAxis
-                                            dataKey="date"
-                                            tick={{ fontSize: 9, fill: "#3f3f46", fontFamily: "monospace" }}
-                                            axisLine={false}
-                                            tickLine={false}
-                                        />
-                                        <YAxis
-                                            tick={{ fontSize: 9, fill: "#3f3f46", fontFamily: "monospace" }}
-                                            axisLine={false}
-                                            tickLine={false}
-                                        />
-                                        <Tooltip content={<CustomTooltip />} />
-                                        <Area
-                                            type="monotone"
-                                            dataKey="commits"
-                                            stroke="#10B981"
-                                            strokeWidth={1.5}
-                                            fill="url(#trendGradient)"
-                                        />
-                                    </AreaChart>
-                                </ResponsiveContainer>
-                            </div>
-                        </ChartSection>
-
-                        <Separator className="bg-zinc-900" />
-
-                        {/* ========== UNIQUE CONTRIBUTORS LINE ========== */}
-                        <ChartSection title="Collaborator Growth" badge="unique">
-                            <div className="h-[160px] -mx-4">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <LineChart data={timeSeriesData}>
-                                        <CartesianGrid strokeDasharray="3 3" stroke="#18181b" vertical={false} />
-                                        <XAxis
-                                            dataKey="date"
-                                            tick={{ fontSize: 9, fill: "#3f3f46", fontFamily: "monospace" }}
-                                            axisLine={false}
-                                            tickLine={false}
-                                        />
-                                        <YAxis
-                                            tick={{ fontSize: 9, fill: "#3f3f46", fontFamily: "monospace" }}
-                                            axisLine={false}
-                                            tickLine={false}
-                                        />
-                                        <Tooltip content={<CustomTooltip />} />
-                                        <Line
-                                            type="monotone"
-                                            dataKey="contributors"
-                                            stroke="#A78BFA"
-                                            strokeWidth={1.5}
-                                            dot={{ fill: "#A78BFA", r: 2 }}
-                                            activeDot={{ r: 4 }}
-                                        />
-                                    </LineChart>
-                                </ResponsiveContainer>
-                            </div>
-                        </ChartSection>
-
-                    </div>
+                    {activeTab === "overview" ? (
+                        <OverviewTab
+                            totalCommits={totalCommits}
+                            languageData={languageData}
+                            timeSeriesData={timeSeriesData}
+                        />
+                    ) : (
+                        <GlobalActivityTab
+                            hourlyActivity={hourlyActivity}
+                            regionalActivity={regionalActivity}
+                            languageTrends={languageTrends}
+                            peakActivity={peakActivity}
+                        />
+                    )}
                 </div>
 
                 <div className="p-6 border-t border-zinc-900 flex-shrink-0 text-center">
                     <p className="text-[9px] font-mono text-zinc-600 uppercase tracking-widest">
-                        Stats from the last 30 days
+                        {activeTab === "overview" ? "Stats from the last 30 days" : "Real-time global activity"}
                     </p>
                 </div>
             </SheetContent>
         </Sheet>
+    );
+}
+
+// ============================================
+// OVERVIEW TAB
+// ============================================
+
+function OverviewTab({
+    totalCommits,
+    languageData,
+    timeSeriesData,
+}: {
+    totalCommits: number;
+    languageData: Array<{ name: string; value: number; fill: string }>;
+    timeSeriesData: Array<Record<string, unknown>>;
+}) {
+    return (
+        <div className="p-6 space-y-8">
+            {/* ========== BIG TICKER ========== */}
+            <div className="bg-gradient-to-br from-zinc-900/50 to-transparent border border-zinc-900 rounded-xl p-6 shadow-2xl">
+                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500 mb-3">
+                    Total Commits Tracked
+                </p>
+                <p className="text-4xl font-bold text-zinc-100 tracking-tighter">
+                    <AnimatedCounter value={totalCommits} />
+                </p>
+            </div>
+
+            {/* ========== LANGUAGE RADIAL ========== */}
+            <ChartSection title="Primary Languages" badge="top 6">
+                <div className="h-[200px] -mx-4">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <RadialBarChart
+                            cx="50%"
+                            cy="50%"
+                            innerRadius="30%"
+                            outerRadius="100%"
+                            data={languageData}
+                            startAngle={90}
+                            endAngle={-270}
+                        >
+                            <RadialBar
+                                dataKey="value"
+                                cornerRadius={10}
+                                background={{ fill: "#18181b" }}
+                            />
+                            <Tooltip content={<CustomTooltip />} />
+                            <Legend
+                                iconType="circle"
+                                iconSize={6}
+                                layout="vertical"
+                                verticalAlign="middle"
+                                align="right"
+                                wrapperStyle={{ fontSize: "10px", color: "#71717a", fontFamily: "monospace" }}
+                            />
+                        </RadialBarChart>
+                    </ResponsiveContainer>
+                </div>
+            </ChartSection>
+
+            <Separator className="bg-zinc-900" />
+
+            {/* ========== CUMULATIVE AREA ========== */}
+            <ChartSection title="Activity Trend" badge="last 7 days">
+                <div className="h-[160px] -mx-4">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={timeSeriesData}>
+                            <defs>
+                                <linearGradient id="trendGradient" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stopColor="#10B981" stopOpacity={0.2} />
+                                    <stop offset="100%" stopColor="#10B981" stopOpacity={0} />
+                                </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#18181b" vertical={false} />
+                            <XAxis
+                                dataKey="date"
+                                tick={{ fontSize: 9, fill: "#3f3f46", fontFamily: "monospace" }}
+                                axisLine={false}
+                                tickLine={false}
+                            />
+                            <YAxis
+                                tick={{ fontSize: 9, fill: "#3f3f46", fontFamily: "monospace" }}
+                                axisLine={false}
+                                tickLine={false}
+                            />
+                            <Tooltip content={<CustomTooltip />} />
+                            <Area
+                                type="monotone"
+                                dataKey="commits"
+                                stroke="#10B981"
+                                strokeWidth={1.5}
+                                fill="url(#trendGradient)"
+                            />
+                        </AreaChart>
+                    </ResponsiveContainer>
+                </div>
+            </ChartSection>
+
+            <Separator className="bg-zinc-900" />
+
+            {/* ========== UNIQUE CONTRIBUTORS LINE ========== */}
+            <ChartSection title="Collaborator Growth" badge="unique">
+                <div className="h-[160px] -mx-4">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={timeSeriesData}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#18181b" vertical={false} />
+                            <XAxis
+                                dataKey="date"
+                                tick={{ fontSize: 9, fill: "#3f3f46", fontFamily: "monospace" }}
+                                axisLine={false}
+                                tickLine={false}
+                            />
+                            <YAxis
+                                tick={{ fontSize: 9, fill: "#3f3f46", fontFamily: "monospace" }}
+                                axisLine={false}
+                                tickLine={false}
+                            />
+                            <Tooltip content={<CustomTooltip />} />
+                            <Line
+                                type="monotone"
+                                dataKey="contributors"
+                                stroke="#A78BFA"
+                                strokeWidth={1.5}
+                                dot={{ fill: "#A78BFA", r: 2 }}
+                                activeDot={{ r: 4 }}
+                            />
+                        </LineChart>
+                    </ResponsiveContainer>
+                </div>
+            </ChartSection>
+        </div>
+    );
+}
+
+// ============================================
+// GLOBAL ACTIVITY TAB
+// ============================================
+
+interface HourlyData {
+    hour: number;
+    label: string;
+    commits: number;
+}
+
+interface RegionalData {
+    region: string;
+    commits: number;
+    topLanguage: string;
+}
+
+interface LanguageTrendData {
+    language: string;
+    data: Array<{ date: string; commits: number }>;
+    trend: "up" | "down" | "stable";
+    change: number;
+}
+
+interface PeakActivityData {
+    region: string;
+    peakHourUTC: number;
+    peakLabel: string;
+    totalCommits: number;
+    hourlyData: Array<{ hour: number; commits: number }>;
+}
+
+function GlobalActivityTab({
+    hourlyActivity,
+    regionalActivity,
+    languageTrends,
+    peakActivity,
+}: {
+    hourlyActivity: HourlyData[] | undefined;
+    regionalActivity: RegionalData[] | undefined;
+    languageTrends: LanguageTrendData[] | undefined;
+    peakActivity: PeakActivityData[] | undefined;
+}) {
+    // Find the current hour for highlighting
+    const currentHourUTC = new Date().getUTCHours();
+
+    return (
+        <div className="p-6 space-y-8">
+            {/* ========== HOURLY ACTIVITY ========== */}
+            <ChartSection title="When The World Codes" badge="last 24h">
+                <p className="text-[10px] text-zinc-500 mb-2">
+                    Commit activity by hour (UTC). Current hour highlighted.
+                </p>
+                <div className="h-[140px] -mx-4">
+                    {hourlyActivity ? (
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={hourlyActivity}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#18181b" vertical={false} />
+                                <XAxis
+                                    dataKey="hour"
+                                    tick={{ fontSize: 8, fill: "#3f3f46", fontFamily: "monospace" }}
+                                    axisLine={false}
+                                    tickLine={false}
+                                    interval={2}
+                                    tickFormatter={(h) => `${h}`}
+                                />
+                                <YAxis
+                                    tick={{ fontSize: 9, fill: "#3f3f46", fontFamily: "monospace" }}
+                                    axisLine={false}
+                                    tickLine={false}
+                                    width={30}
+                                />
+                                <Tooltip content={<CustomTooltip />} />
+                                <Bar dataKey="commits" radius={[2, 2, 0, 0]}>
+                                    {hourlyActivity.map((entry, index) => (
+                                        <Cell
+                                            key={`cell-${index}`}
+                                            fill={entry.hour === currentHourUTC ? "#10B981" : "#3f3f46"}
+                                        />
+                                    ))}
+                                </Bar>
+                            </BarChart>
+                        </ResponsiveContainer>
+                    ) : (
+                        <div className="h-full flex items-center justify-center text-zinc-600 text-sm">
+                            Loading hourly data...
+                        </div>
+                    )}
+                </div>
+            </ChartSection>
+
+            <Separator className="bg-zinc-900" />
+
+            {/* ========== REGIONAL ACTIVITY ========== */}
+            <ChartSection title="Geographic Distribution" badge="7 days">
+                <p className="text-[10px] text-zinc-500 mb-3">
+                    Where code is being written around the world.
+                </p>
+                {regionalActivity ? (
+                    <div className="space-y-2">
+                        {regionalActivity.map((region) => {
+                            const maxCommits = Math.max(...regionalActivity.map(r => r.commits));
+                            const percentage = maxCommits > 0 ? (region.commits / maxCommits) * 100 : 0;
+
+                            return (
+                                <div key={region.region} className="space-y-1">
+                                    <div className="flex justify-between items-center text-[10px]">
+                                        <span className="text-zinc-300 font-medium">{region.region}</span>
+                                        <span className="text-zinc-500 font-mono">
+                                            {region.commits.toLocaleString()} commits
+                                        </span>
+                                    </div>
+                                    <div className="h-2 bg-zinc-900 rounded-full overflow-hidden">
+                                        <div
+                                            className="h-full rounded-full transition-all duration-500"
+                                            style={{
+                                                width: `${percentage}%`,
+                                                backgroundColor: REGION_COLORS[region.region] || "#6B7280",
+                                            }}
+                                        />
+                                    </div>
+                                    <div className="text-[9px] text-zinc-600 font-mono">
+                                        Top language: {region.topLanguage}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                ) : (
+                    <div className="h-32 flex items-center justify-center text-zinc-600 text-sm">
+                        Loading regional data...
+                    </div>
+                )}
+            </ChartSection>
+
+            <Separator className="bg-zinc-900" />
+
+            {/* ========== LANGUAGE TRENDS ========== */}
+            <ChartSection title="Language Trends" badge="7 days">
+                <p className="text-[10px] text-zinc-500 mb-3">
+                    Which languages are gaining or losing momentum.
+                </p>
+                {languageTrends && languageTrends.length > 0 ? (
+                    <div className="space-y-2">
+                        {languageTrends.slice(0, 6).map((lang) => (
+                            <div
+                                key={lang.language}
+                                className="flex items-center justify-between bg-zinc-900/30 px-3 py-2 rounded-lg"
+                            >
+                                <div className="flex items-center gap-2">
+                                    <div
+                                        className="w-2 h-2 rounded-full"
+                                        style={{
+                                            backgroundColor:
+                                                LANGUAGE_COLORS[lang.language] || LANGUAGE_COLORS.Other,
+                                        }}
+                                    />
+                                    <span className="text-[11px] text-zinc-200 font-medium">
+                                        {lang.language}
+                                    </span>
+                                </div>
+                                <TrendIndicator trend={lang.trend} change={lang.change} />
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="h-32 flex items-center justify-center text-zinc-600 text-sm">
+                        {languageTrends === undefined ? "Loading trends..." : "Not enough data for trends"}
+                    </div>
+                )}
+            </ChartSection>
+
+            <Separator className="bg-zinc-900" />
+
+            {/* ========== PEAK ACTIVITY BY REGION ========== */}
+            <ChartSection title="Peak Hours by Region" badge="24h">
+                <p className="text-[10px] text-zinc-500 mb-3">
+                    When each region is most active (UTC time).
+                </p>
+                {peakActivity ? (
+                    <div className="grid grid-cols-3 gap-2">
+                        {peakActivity.map((region) => (
+                            <div
+                                key={region.region}
+                                className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-3 text-center"
+                            >
+                                <div className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider mb-1">
+                                    {region.region.split("/")[0]}
+                                </div>
+                                <div className="flex items-center justify-center gap-1 text-zinc-200">
+                                    <Clock className="h-3 w-3 text-zinc-500" />
+                                    <span className="text-sm font-mono font-bold">
+                                        {region.peakLabel.replace(" UTC", "")}
+                                    </span>
+                                </div>
+                                <div className="text-[9px] text-zinc-600 mt-1 font-mono">
+                                    {region.totalCommits.toLocaleString()} total
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="h-24 flex items-center justify-center text-zinc-600 text-sm">
+                        Loading peak activity...
+                    </div>
+                )}
+            </ChartSection>
+        </div>
     );
 }
 

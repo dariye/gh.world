@@ -192,3 +192,230 @@ export const updateDailyStats = internalMutation({
         }
     },
 });
+
+/**
+ * Get hourly activity distribution for the last 24 hours.
+ * Shows when the world is coding (UTC hours).
+ */
+export const getHourlyActivity = query({
+    args: {},
+    handler: async (ctx) => {
+        const now = Date.now();
+        const twentyFourHoursAgo = now - 24 * 60 * 60 * 1000;
+
+        const commits = await ctx.db
+            .query("commits")
+            .withIndex("by_timestamp", (q) => q.gte("timestamp", twentyFourHoursAgo))
+            .collect();
+
+        // Group by hour of day (UTC)
+        const hourlyData: Record<number, number> = {};
+        for (let i = 0; i < 24; i++) {
+            hourlyData[i] = 0;
+        }
+
+        for (const commit of commits) {
+            const hour = new Date(commit.timestamp).getUTCHours();
+            hourlyData[hour]++;
+        }
+
+        // Return as array for charting
+        return Object.entries(hourlyData).map(([hour, commits]) => ({
+            hour: parseInt(hour),
+            label: `${hour.padStart(2, "0")}:00`,
+            commits,
+        }));
+    },
+});
+
+/**
+ * Get activity by geographic region based on coordinates.
+ */
+export const getRegionalActivity = query({
+    args: {},
+    handler: async (ctx) => {
+        const now = Date.now();
+        const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000;
+
+        const commits = await ctx.db
+            .query("commits")
+            .withIndex("by_timestamp", (q) => q.gte("timestamp", sevenDaysAgo))
+            .collect();
+
+        // Define broad regions by latitude/longitude ranges
+        const regions: Record<string, { count: number; languages: Record<string, number> }> = {
+            "North America": { count: 0, languages: {} },
+            "South America": { count: 0, languages: {} },
+            "Europe": { count: 0, languages: {} },
+            "Africa": { count: 0, languages: {} },
+            "Asia": { count: 0, languages: {} },
+            "Oceania": { count: 0, languages: {} },
+            "Unknown": { count: 0, languages: {} },
+        };
+
+        const getRegion = (lat: number, lng: number): string => {
+            // Simplified region detection based on coordinates
+            if (lat >= 15 && lat <= 72 && lng >= -170 && lng <= -50) return "North America";
+            if (lat >= -60 && lat < 15 && lng >= -90 && lng <= -30) return "South America";
+            if (lat >= 35 && lat <= 72 && lng >= -25 && lng <= 60) return "Europe";
+            if (lat >= -40 && lat < 35 && lng >= -20 && lng <= 55) return "Africa";
+            if (lat >= -10 && lat <= 80 && lng > 55 && lng <= 180) return "Asia";
+            if (lat >= -10 && lat <= 80 && lng >= -180 && lng < -170) return "Asia"; // Eastern Russia
+            if (lat >= -50 && lat < -10 && lng >= 100 && lng <= 180) return "Oceania";
+            if (lat >= -50 && lat <= 0 && lng >= -180 && lng <= -100) return "Oceania"; // Pacific islands
+            return "Unknown";
+        };
+
+        for (const commit of commits) {
+            const [lat, lng] = commit.coordinates;
+            const hasCoords = commit.coordinates.length === 2 && lat !== 0 && lng !== 0;
+
+            const region = hasCoords ? getRegion(lat, lng) : "Unknown";
+            regions[region].count++;
+
+            const lang = commit.language || "Other";
+            regions[region].languages[lang] = (regions[region].languages[lang] || 0) + 1;
+        }
+
+        // Convert to array and sort by count
+        return Object.entries(regions)
+            .filter(([name]) => name !== "Unknown")
+            .map(([name, data]) => ({
+                region: name,
+                commits: data.count,
+                topLanguage: Object.entries(data.languages)
+                    .sort(([, a], [, b]) => b - a)[0]?.[0] || "Unknown",
+            }))
+            .sort((a, b) => b.commits - a.commits);
+    },
+});
+
+/**
+ * Get language trends over the past 7 days.
+ * Shows growth/decline of each language.
+ */
+export const getLanguageTrends = query({
+    args: {},
+    handler: async (ctx) => {
+        const historicalStats = await ctx.db
+            .query("dailyStats")
+            .order("desc")
+            .take(7);
+
+        if (historicalStats.length < 2) {
+            return [];
+        }
+
+        // Get all unique languages across all days
+        const allLanguages = new Set<string>();
+        for (const day of historicalStats) {
+            Object.keys(day.byLanguage).forEach(lang => allLanguages.add(lang));
+        }
+
+        // Build trend data for each language
+        const trends: Array<{
+            language: string;
+            data: Array<{ date: string; commits: number }>;
+            trend: "up" | "down" | "stable";
+            change: number;
+        }> = [];
+
+        for (const language of allLanguages) {
+            const data = [...historicalStats].reverse().map(day => ({
+                date: day.date.split("-").slice(1).join("/"),
+                commits: day.byLanguage[language] || 0,
+            }));
+
+            // Calculate trend (compare first half to second half)
+            const firstHalf = data.slice(0, Math.floor(data.length / 2));
+            const secondHalf = data.slice(Math.floor(data.length / 2));
+
+            const firstAvg = firstHalf.reduce((sum, d) => sum + d.commits, 0) / firstHalf.length;
+            const secondAvg = secondHalf.reduce((sum, d) => sum + d.commits, 0) / secondHalf.length;
+
+            const change = firstAvg > 0 ? ((secondAvg - firstAvg) / firstAvg) * 100 : 0;
+            const trend = change > 5 ? "up" : change < -5 ? "down" : "stable";
+
+            const total = data.reduce((sum, d) => sum + d.commits, 0);
+            if (total > 0) {
+                trends.push({ language, data, trend, change: Math.round(change) });
+            }
+        }
+
+        // Sort by total commits and take top 8
+        return trends
+            .sort((a, b) => {
+                const aTotal = a.data.reduce((sum, d) => sum + d.commits, 0);
+                const bTotal = b.data.reduce((sum, d) => sum + d.commits, 0);
+                return bTotal - aTotal;
+            })
+            .slice(0, 8);
+    },
+});
+
+/**
+ * Get peak activity times by region (simplified).
+ * Returns when each major region is most active.
+ */
+export const getPeakActivityByRegion = query({
+    args: {},
+    handler: async (ctx) => {
+        const now = Date.now();
+        const twentyFourHoursAgo = now - 24 * 60 * 60 * 1000;
+
+        const commits = await ctx.db
+            .query("commits")
+            .withIndex("by_timestamp", (q) => q.gte("timestamp", twentyFourHoursAgo))
+            .collect();
+
+        // Track hourly activity by rough timezone bands
+        // West (-120 to -60): Americas
+        // Mid (-30 to +30): Europe/Africa
+        // East (+60 to +120): Asia/Pacific
+        const bands: Record<string, Record<number, number>> = {
+            "Americas": {},
+            "Europe/Africa": {},
+            "Asia/Pacific": {},
+        };
+
+        for (let i = 0; i < 24; i++) {
+            bands["Americas"][i] = 0;
+            bands["Europe/Africa"][i] = 0;
+            bands["Asia/Pacific"][i] = 0;
+        }
+
+        for (const commit of commits) {
+            const [lat, lng] = commit.coordinates;
+            if (commit.coordinates.length !== 2 || (lat === 0 && lng === 0)) continue;
+
+            const hour = new Date(commit.timestamp).getUTCHours();
+
+            if (lng >= -170 && lng < -30) {
+                bands["Americas"][hour]++;
+            } else if (lng >= -30 && lng < 60) {
+                bands["Europe/Africa"][hour]++;
+            } else {
+                bands["Asia/Pacific"][hour]++;
+            }
+        }
+
+        // Find peak hour for each band
+        return Object.entries(bands).map(([band, hourly]) => {
+            const peakHour = Object.entries(hourly)
+                .sort(([, a], [, b]) => b - a)[0];
+
+            const totalCommits = Object.values(hourly).reduce((a, b) => a + b, 0);
+
+            return {
+                region: band,
+                peakHourUTC: parseInt(peakHour?.[0] || "0"),
+                peakLabel: `${(peakHour?.[0] || "0").padStart(2, "0")}:00 UTC`,
+                totalCommits,
+                hourlyData: Object.entries(hourly).map(([h, c]) => ({
+                    hour: parseInt(h),
+                    commits: c,
+                })),
+            };
+        });
+    },
+});
