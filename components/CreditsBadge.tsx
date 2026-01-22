@@ -30,6 +30,28 @@ export function CreditsBadge() {
       <p className="text-[8px] text-zinc-700 tracking-wide">
         Not affiliated with GitHub
       </p>
+      <p className="text-[8px] text-zinc-700 tracking-wide">
+        Made with{" "}
+        <span className="text-red-500/60">♥</span>
+        {" "}by{" "}
+        <Link
+          href="https://github.com/dariye"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="hover:text-zinc-500 transition-colors"
+        >
+          dariye
+        </Link>
+        {" · "}
+        <Link
+          href="https://github.com/dariye/gh.world"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="hover:text-zinc-500 transition-colors"
+        >
+          source
+        </Link>
+      </p>
     </div>
   );
 }
