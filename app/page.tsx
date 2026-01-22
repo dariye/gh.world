@@ -22,6 +22,7 @@ import KeyboardShortcutsHelp from "@/components/KeyboardShortcutsHelp";
 import { useKeyboardShortcuts } from "@/lib/useKeyboardShortcuts";
 import { SUPPORTED_LANGUAGES } from "@/lib/colors";
 import ActivityLegend from "@/components/ActivityLegend";
+import { CreditsBadge } from "@/components/CreditsBadge";
 import SunriseMode from "@/components/SunriseMode";
 import {
   SUNRISE_CONFIG,
@@ -256,7 +257,7 @@ export default function Home() {
       {/* Top Left: Branding */}
       <div className="absolute top-4 left-4 sm:top-6 sm:left-6 z-50 pointer-events-none flex flex-col gap-1">
         <h1 className="text-xl sm:text-2xl font-bold tracking-tighter text-white">
-          gh.world
+          gh.world<span className="text-[8px] sm:text-[10px] font-normal text-zinc-600 ml-1 align-super">v1.0.4</span>
         </h1>
         <p className="text-white/40 text-[10px] sm:text-xs font-mono lowercase tracking-widest">
           view the world in github commits
@@ -286,6 +287,11 @@ export default function Home() {
       {/* Bottom Left: Activity Legend (above timeline) */}
       <div className="absolute bottom-28 sm:bottom-32 left-4 sm:left-6 z-40 pointer-events-none">
         <ActivityLegend />
+      </div>
+
+      {/* Bottom Left: Credits (below legend, above timeline) */}
+      <div className="absolute bottom-16 sm:bottom-20 left-4 sm:left-6 z-40 pointer-events-auto">
+        <CreditsBadge />
       </div>
 
 

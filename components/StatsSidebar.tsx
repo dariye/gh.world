@@ -325,9 +325,8 @@ export function StatsSidebar({ isOpen: controlledIsOpen, onOpenChange }: StatsSi
                 </div>
 
                 <div className="p-6 border-t border-zinc-900 flex-shrink-0 text-center">
-                    <p className="text-[9px] font-mono text-zinc-600 uppercase tracking-widest leading-loose">
-                        gh.world version 1.0.4<br />
-                        built with convex & next.js
+                    <p className="text-[9px] font-mono text-zinc-600 uppercase tracking-widest">
+                        Stats from the last 30 days
                     </p>
                 </div>
             </SheetContent>
