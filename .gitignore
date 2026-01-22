@@ -40,11 +40,26 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-.beads/.beads/
-.beads/.local_version
-.beads/last-touched
-.beads/metadata.json
-
 # Gas Town runtime
 .repo.git/
 .runtime/
+
+state.json
+.runtime/
+
+.beads/redirect
+.beads/issues.jsonl
+.beads/interactions.jsonl
+.beads/metadata.json
+.beads/mq/
+.beads/last-touched
+.beads/daemon-*.log.gz
+.beads/.sync.lock
+.beads/sync_base.jsonl
+.beads-wisp/
+
+.beads/
+.logs/
+logs/
+settings/
+.events.jsonl
