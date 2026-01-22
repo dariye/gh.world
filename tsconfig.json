@@ -36,6 +36,14 @@
     ".next/dev/types/**/*.ts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "ghworld",
+    "polecats",
+    "daemon",
+    "deacon",
+    "mayor",
+    "plugins",
+    "settings",
+    "logs"
   ]
 }

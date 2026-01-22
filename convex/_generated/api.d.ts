@@ -11,6 +11,7 @@
 import type * as actions from "../actions.js";
 import type * as commits from "../commits.js";
 import type * as crons from "../crons.js";
+import type * as profiles from "../profiles.js";
 import type * as seed from "../seed.js";
 import type * as stats from "../stats.js";
 
@@ -24,6 +25,7 @@ declare const fullApi: ApiFromModules<{
   actions: typeof actions;
   commits: typeof commits;
   crons: typeof crons;
+  profiles: typeof profiles;
   seed: typeof seed;
   stats: typeof stats;
 }>;
