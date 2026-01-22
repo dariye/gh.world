@@ -41,15 +41,15 @@ export const getLiveCommits = query({
     handler: async (ctx, args) => {
         const limit = args.limit ?? 5000;
         const now = Date.now();
-        const fifteenMinutesAgo = now - 15 * 60 * 1000;
+        const fiveMinutesAgo = now - 5 * 60 * 1000;
 
-        // Query only last 15 minutes of commits
+        // Query only last 5 minutes of commits
         // Reactivity: This query will re-run whenever new commits are added within this window
         const query = ctx.db.query("commits")
-            .withIndex("by_timestamp", (q) => q.gt("timestamp", fifteenMinutesAgo));
+            .withIndex("by_timestamp", (q) => q.gt("timestamp", fiveMinutesAgo));
 
         const commits = [];
-        // Scan limit isn't strictly needed if we trust volume in 15 mins is reasonable,
+        // Scan limit isn't strictly needed if we trust volume in 5 mins is reasonable,
         // but safe to keep.
         const results = await query.order("desc").take(10000);
 
@@ -117,9 +117,9 @@ export const getLiveCommitCount = query({
     args: {},
     handler: async (ctx) => {
         const now = Date.now();
-        const fifteenMinutesAgo = now - 15 * 60 * 1000;
+        const fiveMinutesAgo = now - 5 * 60 * 1000;
         const results = await ctx.db.query("commits")
-            .withIndex("by_timestamp", (q) => q.gt("timestamp", fifteenMinutesAgo))
+            .withIndex("by_timestamp", (q) => q.gt("timestamp", fiveMinutesAgo))
             .collect();
         return results.length;
     },
