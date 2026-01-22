@@ -5,7 +5,7 @@ import { api } from "@/convex/_generated/api";
 import { useParams } from "next/navigation";
 import { ProfileCard } from "@/components/ProfileCard";
 import { Button } from "@/components/ui/button";
-import { Globe, Copy, Check, ArrowLeft } from "lucide-react";
+import { Globe, Copy, Check, ArrowLeft, CreditCard } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -37,24 +37,36 @@ export default function ProfilePage() {
                         <span className="font-medium">gh.world</span>
                     </Link>
 
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleCopyLink}
-                        className="bg-zinc-900 border-zinc-700 hover:bg-zinc-800"
-                    >
-                        {copied ? (
-                            <>
-                                <Check className="w-4 h-4 mr-2" />
-                                Copied!
-                            </>
-                        ) : (
-                            <>
-                                <Copy className="w-4 h-4 mr-2" />
-                                Share
-                            </>
-                        )}
-                    </Button>
+                    <div className="flex items-center gap-2">
+                        <Link href={`/u/${username}/card`}>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="bg-zinc-900 border-zinc-700 hover:bg-zinc-800"
+                            >
+                                <CreditCard className="w-4 h-4 mr-2" />
+                                Get Card
+                            </Button>
+                        </Link>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleCopyLink}
+                            className="bg-zinc-900 border-zinc-700 hover:bg-zinc-800"
+                        >
+                            {copied ? (
+                                <>
+                                    <Check className="w-4 h-4 mr-2" />
+                                    Copied!
+                                </>
+                            ) : (
+                                <>
+                                    <Copy className="w-4 h-4 mr-2" />
+                                    Share
+                                </>
+                            )}
+                        </Button>
+                    </div>
                 </div>
             </header>
 
