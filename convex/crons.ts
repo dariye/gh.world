@@ -24,4 +24,12 @@ crons.interval(
     (internal as any).actions.pollPublicEvents
 );
 
+// Delete commits older than 1 hour every 5 minutes
+// ~8,640 calls/month, combined with other crons stays within Convex free tier (25K)
+crons.interval(
+    "delete old commits",
+    { minutes: 5 },
+    internal.commits.deleteOldCommits
+);
+
 export default crons;

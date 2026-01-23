@@ -58,6 +58,7 @@ export const getCurrentMonthStats = query({
 /**
  * Internal mutation to update monthly stats.
  * Called by cron every 10 minutes.
+ * Note: With 1-hour rolling window, this reflects current active commits only.
  */
 export const updateMonthlyStats = internalMutation({
     args: {},
@@ -66,18 +67,16 @@ export const updateMonthlyStats = internalMutation({
         const now = new Date();
         const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 
-        // Get start of month timestamp
-        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
-        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1).getTime();
+        // With 1-hour rolling window, query all current commits (they're all within 1 hour)
+        const oneHourAgo = Date.now() - 60 * 60 * 1000;
 
-        // Query all commits for this month
+        // Query commits from the last hour
         const commits = await ctx.db
             .query("commits")
-            .withIndex("by_timestamp", (q) => q.gte("timestamp", startOfMonth))
+            .withIndex("by_timestamp", (q) => q.gte("timestamp", oneHourAgo))
             .collect();
 
-        // Filter to only this month's commits
-        const monthCommits = commits.filter((c) => c.timestamp < endOfMonth);
+        const monthCommits = commits;
 
         // Calculate stats
         const totalCommits = monthCommits.length;
@@ -194,18 +193,19 @@ export const updateDailyStats = internalMutation({
 });
 
 /**
- * Get hourly activity distribution for the last 24 hours.
+ * Get hourly activity distribution for the last hour.
  * Shows when the world is coding (UTC hours).
+ * Note: With 1-hour rolling window, this shows activity in the current hour only.
  */
 export const getHourlyActivity = query({
     args: {},
     handler: async (ctx) => {
         const now = Date.now();
-        const twentyFourHoursAgo = now - 24 * 60 * 60 * 1000;
+        const oneHourAgo = now - 60 * 60 * 1000;
 
         const commits = await ctx.db
             .query("commits")
-            .withIndex("by_timestamp", (q) => q.gte("timestamp", twentyFourHoursAgo))
+            .withIndex("by_timestamp", (q) => q.gte("timestamp", oneHourAgo))
             .collect();
 
         // Group by hour of day (UTC)
@@ -230,16 +230,17 @@ export const getHourlyActivity = query({
 
 /**
  * Get activity by geographic region based on coordinates.
+ * Uses 1-hour rolling window due to Convex free tier limits.
  */
 export const getRegionalActivity = query({
     args: {},
     handler: async (ctx) => {
         const now = Date.now();
-        const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000;
+        const oneHourAgo = now - 60 * 60 * 1000;
 
         const commits = await ctx.db
             .query("commits")
-            .withIndex("by_timestamp", (q) => q.gte("timestamp", sevenDaysAgo))
+            .withIndex("by_timestamp", (q) => q.gte("timestamp", oneHourAgo))
             .collect();
 
         // Define broad regions by latitude/longitude ranges
@@ -356,16 +357,17 @@ export const getLanguageTrends = query({
 /**
  * Get peak activity times by region (simplified).
  * Returns when each major region is most active.
+ * Uses 1-hour rolling window due to Convex free tier limits.
  */
 export const getPeakActivityByRegion = query({
     args: {},
     handler: async (ctx) => {
         const now = Date.now();
-        const twentyFourHoursAgo = now - 24 * 60 * 60 * 1000;
+        const oneHourAgo = now - 60 * 60 * 1000;
 
         const commits = await ctx.db
             .query("commits")
-            .withIndex("by_timestamp", (q) => q.gte("timestamp", twentyFourHoursAgo))
+            .withIndex("by_timestamp", (q) => q.gte("timestamp", oneHourAgo))
             .collect();
 
         // Track hourly activity by rough timezone bands

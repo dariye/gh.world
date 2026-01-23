@@ -302,3 +302,32 @@ export const cacheRepoLanguage = internalMutation({
         }
     },
 });
+
+/**
+ * Delete commits older than 1 hour.
+ * Called by cron every 5 minutes to stay within Convex free tier limits.
+ */
+export const deleteOldCommits = internalMutation({
+    args: {},
+    handler: async (ctx) => {
+        const oneHourAgo = Date.now() - 60 * 60 * 1000;
+
+        // Query commits older than 1 hour
+        const oldCommits = await ctx.db
+            .query("commits")
+            .withIndex("by_timestamp", (q) => q.lt("timestamp", oneHourAgo))
+            .take(500); // Batch delete to avoid timeout
+
+        let deleted = 0;
+        for (const commit of oldCommits) {
+            await ctx.db.delete(commit._id);
+            deleted++;
+        }
+
+        if (deleted > 0) {
+            console.log(`Deleted ${deleted} commits older than 1 hour`);
+        }
+
+        return { deleted };
+    },
+});
