@@ -131,7 +131,7 @@ export default function Home() {
       {/* Top Left: Branding */}
 <div className="absolute top-4 left-4 sm:top-5 sm:left-5 md:top-6 md:left-6 z-50 pointer-events-none flex flex-col gap-1">
         <h1 className="text-xl sm:text-[22px] md:text-2xl font-bold tracking-tighter text-white">
-          gh.world<span className="text-[8px] sm:text-[9px] md:text-[10px] font-normal text-zinc-600 ml-1 align-super">v1.0.4</span>
+          gh.world<span className="text-[8px] sm:text-[9px] md:text-[10px] font-normal text-zinc-600 ml-1 align-super">v{process.env.APP_VERSION}</span>
         </h1>
         <p className="text-white/40 text-[10px] sm:text-[11px] md:text-xs font-mono lowercase tracking-widest">
           earth commits stream<sup className="text-[8px] sm:text-[9px] text-white/30 ml-1">1 hour</sup>
