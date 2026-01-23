@@ -144,6 +144,7 @@ export default function Home() {
       {/* Top Right: Controls */}
 <div className="absolute top-4 right-4 sm:top-5 sm:right-5 md:top-6 md:right-6 z-50 pointer-events-auto flex items-center gap-1.5 sm:gap-2">
         <UserMenu onOpenStats={() => ui.setIsPersonalDashboardOpen(true)} />
+        <StatsSidebar isOpen={ui.isStatsOpen} onOpenChange={ui.setIsStatsOpen} />
         <ModeToggle />
       </div>
 
@@ -184,7 +185,6 @@ isActive={sunrise.isSunriseMode}
           <SoundToggle />
           <LanguageFilter value={ui.selectedLanguage} onChange={ui.setSelectedLanguage} />
           <ProfileSearch />
-          <StatsSidebar isOpen={ui.isStatsOpen} onOpenChange={ui.setIsStatsOpen} />
         </div>
       </div>
 
