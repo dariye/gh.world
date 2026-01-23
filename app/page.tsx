@@ -166,11 +166,6 @@ export default function Home() {
         </div>
       </div>
 
-{/* Bottom Left: Credits (below legend, above timeline) */}
-      <div className="absolute bottom-16 sm:bottom-16 md:bottom-20 left-4 sm:left-5 md:left-6 z-40 pointer-events-auto">
-        <CreditsBadge />
-      </div>
-
       {/* Bottom Right: Status (above timeline) */}
       <div className="absolute bottom-20 sm:bottom-20 md:bottom-24 right-4 sm:right-5 md:right-6 z-40 pointer-events-auto flex flex-col items-end gap-2 sm:gap-2.5 md:gap-3">
         <div className={`text-white/40 text-[9px] sm:text-[9px] md:text-[10px] font-mono bg-card/50 backdrop-blur-sm px-1.5 sm:px-1.5 md:px-2 py-0.5 sm:py-0.5 md:py-1 rounded ${isCountLoading ? 'animate-pulse' : ''}`}>
