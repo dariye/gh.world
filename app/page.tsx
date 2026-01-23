@@ -20,6 +20,7 @@ import SunriseMode from "@/components/SunriseMode";
 import { SoundToggle } from "@/components/SoundToggle";
 import { useCommitSounds } from "@/lib/useCommitSounds";
 import { ViewerCount } from "@/components/ViewerCount";
+import { SilentErrorBoundary } from "@/components/SilentErrorBoundary";
 
 // Custom hooks for state management
 import { useTimeline } from "@/lib/useTimeline";
@@ -137,7 +138,9 @@ export default function Home() {
           earth commits stream<sup className="text-[8px] sm:text-[9px] text-white/30 ml-1">1 hour</sup>
         </p>
         <div className="pointer-events-auto mt-2">
-          <ViewerCount />
+          <SilentErrorBoundary>
+            <ViewerCount />
+          </SilentErrorBoundary>
         </div>
       </div>
 

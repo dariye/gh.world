@@ -55,19 +55,23 @@ export function usePresence() {
     useEffect(() => {
         if (!mounted || !sessionIdRef.current) return;
 
+        const sendHeartbeat = async () => {
+            try {
+                await heartbeat({
+                    sessionId: sessionIdRef.current,
+                    region: regionRef.current,
+                });
+            } catch {
+                // Fail silently - Convex may be unavailable (e.g., free plan exceeded)
+                // Presence tracking is non-critical functionality
+            }
+        };
+
         // Send initial heartbeat
-        heartbeat({
-            sessionId: sessionIdRef.current,
-            region: regionRef.current,
-        });
+        sendHeartbeat();
 
         // Set up interval for subsequent heartbeats
-        const interval = setInterval(() => {
-            heartbeat({
-                sessionId: sessionIdRef.current,
-                region: regionRef.current,
-            });
-        }, 10000);
+        const interval = setInterval(sendHeartbeat, 10000);
 
         return () => clearInterval(interval);
     }, [mounted, heartbeat]);

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import ConvexClientProvider from "@/components/ConvexClientProvider";
+import { ConvexErrorBoundary } from "@/components/ConvexErrorBoundary";
 import { ThemeProvider } from "@/components/theme-provider";
 import SessionProvider from "@/components/SessionProvider";
 
@@ -55,14 +56,16 @@ export default function RootLayout({
       >
         <SessionProvider>
           <ConvexClientProvider>
-            <ThemeProvider
-              attribute="class"
-              defaultTheme="dark"
-              enableSystem={false}
-              disableTransitionOnChange
-            >
-              {children}
-            </ThemeProvider>
+            <ConvexErrorBoundary>
+              <ThemeProvider
+                attribute="class"
+                defaultTheme="dark"
+                enableSystem={false}
+                disableTransitionOnChange
+              >
+                {children}
+              </ThemeProvider>
+            </ConvexErrorBoundary>
           </ConvexClientProvider>
         </SessionProvider>
       </body>
