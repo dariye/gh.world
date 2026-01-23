@@ -103,8 +103,8 @@ export function ProfileSearch({
             )}
 
             <DialogContent className="bg-zinc-950 border-zinc-800 p-0 gap-0 max-w-[calc(100%-2rem)] sm:max-w-md md:max-w-lg">
-                {selectedUsername && profileStats ? (
-                    // Profile Card View
+                {selectedUsername ? (
+                    // Profile View (loading, found, or not found)
                     <div className="p-4">
                         <button
                             onClick={handleBack}
@@ -112,30 +112,52 @@ export function ProfileSearch({
                         >
                             ← Back to search
                         </button>
-                        <div className="flex justify-center">
-                            <ProfileCard
-                                username={profileStats.author}
-                                authorUrl={profileStats.authorUrl}
-                                commitCount={profileStats.commitCount}
-                                percentileRank={profileStats.percentileRank}
-                                languageBreakdown={profileStats.languageBreakdown}
-                                location={profileStats.location}
-                                latestCommitMessage={profileStats.latestCommitMessage}
-                                firstCommitTimestamp={profileStats.firstCommitTimestamp}
-                            />
-                        </div>
-                        <div className="mt-4 flex justify-center">
-                            <Button
-                                variant="outline"
-                                className="bg-zinc-900 border-zinc-700 hover:bg-zinc-800"
-                                onClick={() => {
-                                    const url = `${window.location.origin}/u/${selectedUsername}`;
-                                    navigator.clipboard.writeText(url);
-                                }}
-                            >
-                                Copy Share Link
-                            </Button>
-                        </div>
+                        {profileStats === undefined ? (
+                            // Loading state
+                            <div className="animate-pulse space-y-4 py-8">
+                                <div className="h-6 bg-zinc-900 rounded w-3/4 mx-auto"></div>
+                                <div className="h-40 bg-zinc-900 rounded"></div>
+                                <div className="h-4 bg-zinc-900 rounded w-1/2 mx-auto"></div>
+                            </div>
+                        ) : profileStats === null ? (
+                            // User not found
+                            <div className="text-center py-8 space-y-4">
+                                <p className="text-zinc-400">
+                                    No commits found for @{selectedUsername}
+                                </p>
+                                <p className="text-sm text-zinc-500">
+                                    This user hasn&apos;t made any public commits tracked by gh.world yet.
+                                </p>
+                            </div>
+                        ) : (
+                            // Profile found
+                            <>
+                                <div className="flex justify-center">
+                                    <ProfileCard
+                                        username={profileStats.author}
+                                        authorUrl={profileStats.authorUrl}
+                                        commitCount={profileStats.commitCount}
+                                        percentileRank={profileStats.percentileRank}
+                                        languageBreakdown={profileStats.languageBreakdown}
+                                        location={profileStats.location}
+                                        latestCommitMessage={profileStats.latestCommitMessage}
+                                        firstCommitTimestamp={profileStats.firstCommitTimestamp}
+                                    />
+                                </div>
+                                <div className="mt-4 flex justify-center">
+                                    <Button
+                                        variant="outline"
+                                        className="bg-zinc-900 border-zinc-700 hover:bg-zinc-800"
+                                        onClick={() => {
+                                            const url = `${window.location.origin}/u/${selectedUsername}`;
+                                            navigator.clipboard.writeText(url);
+                                        }}
+                                    >
+                                        Copy Share Link
+                                    </Button>
+                                </div>
+                            </>
+                        )}
                     </div>
                 ) : (
                     // Search View

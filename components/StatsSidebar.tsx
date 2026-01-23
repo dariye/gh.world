@@ -154,6 +154,7 @@ export function StatsSidebar({ isOpen: controlledIsOpen, onOpenChange }: StatsSi
     const currentStats = useQuery(api.stats.getCurrentMonthStats);
     const historicalStats = useQuery(api.stats.getHistoricalStats, { days: 7 });
 
+    const isLoading = currentStats === undefined || historicalStats === undefined;
     const totalCommits = currentStats?.totalCommits || 0;
 
     // Transform language data for radial chart
@@ -209,11 +210,15 @@ export function StatsSidebar({ isOpen: controlledIsOpen, onOpenChange }: StatsSi
                 </SheetHeader>
 
                 <div className="flex-1 overflow-y-auto custom-scrollbar">
-                    <OverviewTab
-                        totalCommits={totalCommits}
-                        languageData={languageData}
-                        timeSeriesData={timeSeriesData}
-                    />
+                    {isLoading ? (
+                        <LoadingState />
+                    ) : (
+                        <OverviewTab
+                            totalCommits={totalCommits}
+                            languageData={languageData}
+                            timeSeriesData={timeSeriesData}
+                        />
+                    )}
                 </div>
 
                 <div className="p-6 border-t border-zinc-900 flex-shrink-0 text-center">
@@ -223,6 +228,32 @@ export function StatsSidebar({ isOpen: controlledIsOpen, onOpenChange }: StatsSi
                 </div>
             </SheetContent>
         </Sheet>
+    );
+}
+
+// ============================================
+// LOADING STATE
+// ============================================
+
+function LoadingState() {
+    return (
+        <div className="p-6 space-y-8 animate-pulse">
+            {/* Big ticker skeleton */}
+            <div className="bg-zinc-900/50 border border-zinc-900 rounded-xl p-6">
+                <div className="h-3 bg-zinc-800 rounded w-1/3 mb-3"></div>
+                <div className="h-10 bg-zinc-800 rounded w-2/3"></div>
+            </div>
+            {/* Chart skeleton */}
+            <div className="space-y-3">
+                <div className="h-3 bg-zinc-800 rounded w-1/4"></div>
+                <div className="h-[200px] bg-zinc-900/30 rounded"></div>
+            </div>
+            {/* Another chart skeleton */}
+            <div className="space-y-3">
+                <div className="h-3 bg-zinc-800 rounded w-1/4"></div>
+                <div className="h-[160px] bg-zinc-900/30 rounded"></div>
+            </div>
+        </div>
     );
 }
 
