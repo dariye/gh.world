@@ -64,6 +64,16 @@ export function CreditsBadge() {
         </Link>
         {" · "}
         <span>not affiliated with GitHub</span>
+        {" · "}
+        <Link
+          href="https://docs.github.com/en/rest/activity/events"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="hover:text-zinc-500 transition-colors rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background"
+          title="GitHub Events API may have latency from 30s to 6h"
+        >
+          events may be delayed
+        </Link>
       </p>
     </div>
   );
