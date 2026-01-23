@@ -1,4 +1,4 @@
-import { ActionCtx, internalMutation, internalQuery, mutation, query } from "./_generated/server";
+import { internalMutation, internalQuery, query } from "./_generated/server";
 import { v } from "convex/values";
 
 export const getRecentCommits = query({

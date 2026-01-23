@@ -33,6 +33,7 @@ export const heartbeat = mutation({
 
 // Get active viewers (last 30 seconds)
 export const getViewers = query({
+    args: {},
     handler: async (ctx) => {
         const cutoff = Date.now() - 30000; // 30 seconds ago
 
