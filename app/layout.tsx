@@ -16,19 +16,19 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "gh.world - a world of commits",
+  title: "gh.world - earth commits",
   description: "real-time github commit visualization on a 3d globe",
   keywords: "github, globe, visualization, 3d, commits, real-time",
   manifest: "/site.webmanifest",
   openGraph: {
-    title: "gh.world - a world of commits",
+    title: "gh.world - earth commits",
     description: "real-time github commit visualization on a 3d globe",
     type: "website",
     locale: "en_US",
   },
   twitter: {
     card: "summary_large_image",
-    title: "gh.world - a world of commits",
+    title: "gh.world - earth commits",
     description: "real-time github commit visualization on a 3d globe",
   },
   icons: {
