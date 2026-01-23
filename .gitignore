@@ -66,3 +66,13 @@ settings/
 
 # Gas Town (added by gt)
 .claude/
+
+# Gas Town rig infrastructure (local only)
+crew/
+witness/
+refinery/
+polecats/
+mayor/
+plugins/
+config.json
+AGENTS.md
