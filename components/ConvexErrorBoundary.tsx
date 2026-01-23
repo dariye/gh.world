@@ -54,7 +54,7 @@ export class ConvexErrorBoundary extends Component<Props, State> {
                                 <p className="text-white/40 text-xs">
                                     Please check back later or visit{" "}
                                     <a
-                                        href="https://github.com/dariye/ghworld"
+                                        href="https://github.com/dariye/gh.world"
                                         className="text-blue-400 hover:underline"
                                         target="_blank"
                                         rel="noopener noreferrer"
