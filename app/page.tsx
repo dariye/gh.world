@@ -135,7 +135,7 @@ export default function Home() {
           gh.world<span className="text-[8px] sm:text-[9px] md:text-[10px] font-normal text-zinc-600 ml-1 align-super">v1.0.4</span>
         </h1>
         <p className="text-white/40 text-[10px] sm:text-[11px] md:text-xs font-mono lowercase tracking-widest">
-          earth commits stream<sup className="text-white/30 ml-1">1 hour</sup>
+          earth commits stream<sup className="text-[8px] sm:text-[9px] text-white/30 ml-1">1 hour</sup>
         </p>
         <div className="pointer-events-auto mt-2">
           <ViewerCount />
