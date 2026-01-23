@@ -3,7 +3,7 @@
 import { useState, useCallback } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { Search, User, MapPin, Code } from "lucide-react";
+import { Search, User, MapPin } from "lucide-react";
 import {
     Dialog,
     DialogContent,

@@ -100,13 +100,20 @@ function ChartSection({
 // CUSTOM TOOLTIP
 // ============================================
 
-function CustomTooltip({ active, payload, label }: any) {
+interface TooltipPayloadEntry {
+    name: string;
+    value?: number;
+    color?: string;
+    fill?: string;
+}
+
+function CustomTooltip({ active, payload, label }: { active?: boolean; payload?: TooltipPayloadEntry[]; label?: string }) {
     if (!active || !payload) return null;
 
     return (
         <div className="bg-zinc-950/90 border border-zinc-800 rounded px-2.5 py-1.5 shadow-2xl backdrop-blur-md">
             {label && <p className="text-[10px] text-zinc-500 font-mono mb-1 uppercase">{label}</p>}
-            {payload.map((entry: any, index: number) => (
+            {payload.map((entry: TooltipPayloadEntry, index: number) => (
                 <div key={index} className="flex items-center gap-2">
                     <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: entry.color || entry.fill }} />
                     <p className="text-xs font-mono text-zinc-200">
