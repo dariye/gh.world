@@ -4,7 +4,6 @@ import { useQuery } from "convex/react";
 import { useCallback } from "react";
 import { api } from "../convex/_generated/api";
 import GlobeComponent from "@/components/Globe";
-import LocationQuickJump from "@/components/LocationQuickJump";
 import TimelineControl from "@/components/TimelineControl";
 import LanguageFilter from "@/components/LanguageFilter";
 import CommitDetails from "@/components/CommitDetails";
@@ -139,9 +138,6 @@ export default function Home() {
         </p>
         <div className="pointer-events-auto mt-2">
           <ViewerCount />
-        </div>
-        <div className="pointer-events-auto mt-1">
-          <LocationQuickJump onJumpTo={navigation.handleJumpToLocation} />
         </div>
       </div>
 
