@@ -262,7 +262,11 @@ export const cacheLocation = internalMutation({
 export const getOldestCommitTimestamp = query({
     args: {},
     handler: async (ctx) => {
-        const oldest = await ctx.db.query("commits").order("asc").first();
+        const oldest = await ctx.db
+            .query("commits")
+            .withIndex("by_timestamp")
+            .order("asc")
+            .first();
         return oldest?.timestamp ?? Date.now() - 24 * 60 * 60 * 1000;
     },
 });

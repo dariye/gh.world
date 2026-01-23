@@ -50,5 +50,7 @@ export default defineSchema({
     sessionId: v.string(),
     region: v.optional(v.string()),
     lastSeen: v.number(),
-  }).index("by_lastSeen", ["lastSeen"]),
+  })
+    .index("by_sessionId", ["sessionId"])
+    .index("by_lastSeen", ["lastSeen"]),
 });

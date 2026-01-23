@@ -11,7 +11,7 @@ export const heartbeat = mutation({
         // Check if this session already has a presence record
         const existing = await ctx.db
             .query("presence")
-            .filter((q) => q.eq(q.field("sessionId"), args.sessionId))
+            .withIndex("by_sessionId", (q) => q.eq("sessionId", args.sessionId))
             .first();
 
         if (existing) {
