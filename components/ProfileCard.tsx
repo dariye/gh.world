@@ -14,13 +14,13 @@ function AnimatedCounter({
     value: number;
     duration?: number;
 }) {
-    const [displayValue, setDisplayValue] = useState(0);
     const prefersReducedMotion = useReducedMotion();
+    // Start with target value if reduced motion preferred, otherwise animate from 0
+    const [displayValue, setDisplayValue] = useState(() => prefersReducedMotion ? value : 0);
 
     useEffect(() => {
-        // Skip animation if user prefers reduced motion
+        // Skip animation if user prefers reduced motion - value already set via initializer
         if (prefersReducedMotion) {
-            setDisplayValue(value);
             return;
         }
 
@@ -93,7 +93,8 @@ export function ProfileCard({
     location,
     latestCommitMessage,
     firstCommitTimestamp,
-    onShare,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Reserved for future share feature
+    onShare: _onShare,
 }: ProfileCardProps) {
     const localTime = getLocalTime(location?.coordinates || null);
 

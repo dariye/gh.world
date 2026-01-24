@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useEffect, useRef, useState, useMemo, memo } from "react";
-import * as THREE from "three";
+import type { GlobeMethods } from "react-globe.gl";
 import {
     CONTRIBUTION_COLORS,
     LANGUAGE_COLORS_RGB,
@@ -92,7 +92,7 @@ function GlobeComponent({
     /** Callback when user interacts during sunrise mode (to pause/exit) */
     onSunriseInteraction?: () => void
 }) {
-    const globeRef = useRef<any>(null);
+    const globeRef = useRef<GlobeMethods>(undefined);
     const autoRotateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const prefersReducedMotion = useReducedMotion();
 
@@ -384,7 +384,11 @@ return createDayNightMaterial();
     }, [commits, selectedLanguage, quantizedTime, highlightedUser]);
 
     // Separate effect for atmosphere - only triggers when recentUnlocated changes
+    // Uses setTimeout to defer state updates (avoids synchronous setState in effect body)
     useEffect(() => {
+        let timer: NodeJS.Timeout;
+        let resetTimer: NodeJS.Timeout;
+
         if (recentUnlocated.length > 0) {
             // Calculate dominant language among recent unlocated commits
             const langCounts = recentUnlocated.reduce((acc, c) => {
@@ -395,21 +399,29 @@ return createDayNightMaterial();
             const dominantLang = Object.entries(langCounts)
                 .sort(([, a], [, b]) => b - a)[0][0];
 
-            // "Shiver" effect: Pulse atmosphere altitude
-            setAtmosphereAltitude(0.25);
-            // Tint atmosphere with dominant language color
-            setAtmosphereColor(getLanguageRgba(dominantLang, 0.6));
+            // "Shiver" effect: Pulse atmosphere - deferred to next tick
+            timer = setTimeout(() => {
+                setAtmosphereAltitude(0.25);
+                setAtmosphereColor(getLanguageRgba(dominantLang, 0.6));
+            }, 0);
 
             // Reset after animation
-            const timer = setTimeout(() => {
+            resetTimer = setTimeout(() => {
                 setAtmosphereAltitude(0.15);
                 setAtmosphereColor("#1a3050");
             }, 1000);
-            return () => clearTimeout(timer);
         } else {
-            setAtmosphereAltitude(0.15);
-            setAtmosphereColor("#1a3050");
+            // Reset to default - deferred to next tick
+            timer = setTimeout(() => {
+                setAtmosphereAltitude(0.15);
+                setAtmosphereColor("#1a3050");
+            }, 0);
         }
+
+        return () => {
+            clearTimeout(timer);
+            clearTimeout(resetTimer);
+        };
     }, [recentUnlocated]);
 
     // Auto-focus logic during playback
@@ -624,7 +636,8 @@ return createDayNightMaterial();
         if (!globeRef.current || !onViewportChange) return;
 
         const updateViewport = () => {
-            const { lat, lng, altitude } = globeRef.current.getPointOfView();
+            if (!globeRef.current) return;
+            const { lat, lng, altitude } = globeRef.current.pointOfView();
 
             // Geometric Field of View calculation
             // Visible horizon angle theta = arccos(R / (R + h))
@@ -754,15 +767,16 @@ hexPolygonLabel={getHexLabel}
                 // Rings (Recent activity ripple with language colors and fade-out)
                 // Disabled when user prefers reduced motion (WCAG 2.3.3)
                 ringsData={prefersReducedMotion ? [] : rings}
-                ringColor={((ring: { language: string | null; isHighlighted?: boolean }) => {
+                ringColor={(ring: object) => {
+                    const typedRing = ring as { language: string | null; isHighlighted?: boolean };
                     // Highlighted user gets golden rings
-                    if (ring.isHighlighted) {
+                    if (typedRing.isHighlighted) {
                         return (t: number) => `rgba(255, 215, 100, ${Math.max(0, 0.8 - t * 0.8)})`;
                     }
-                    const [r, g, b] = LANGUAGE_COLORS_RGB[ring.language || "Other"] || LANGUAGE_COLORS_RGB["Other"];
+                    const [r, g, b] = LANGUAGE_COLORS_RGB[typedRing.language || "Other"] || LANGUAGE_COLORS_RGB["Other"];
                     // Return a function that fades out as the ring expands (t: 0->1)
                     return (t: number) => `rgba(${r}, ${g}, ${b}, ${Math.max(0, 1 - t)})`;
-                }) as any}
+                }}
                 ringMaxRadius="maxR"
                 ringPropagationSpeed="propagationSpeed"
                 ringRepeatPeriod="repeatPeriod"

@@ -12,7 +12,7 @@ interface LanguageBarProps {
  * Reusable language progress bar component.
  * Displays: Language ████████░░ 61%
  */
-export function LanguageBar({ language, percentage, count }: LanguageBarProps) {
+export function LanguageBar({ language, percentage }: LanguageBarProps) {
     const color = getLanguageHex(language);
     const clampedPercentage = Math.min(100, Math.max(0, percentage));
 

@@ -1,73 +1,40 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 
-interface UseTimelineOptions {
-  windowSizeHours?: number;
-  oldestTimestamp?: number | null;
-}
-
-interface TimelineState {
+export interface TimelineState {
+  // Core timeline state
   isLive: boolean;
+  setIsLive: (isLive: boolean) => void;
   isPlaying: boolean;
+  setIsPlaying: (isPlaying: boolean) => void;
   playbackSpeed: number;
-  startTime: number;
-  minTimeValue: number;
-  maxTimeValue: number;
-  windowSizeHours: number;
-}
-
-interface TimelineActions {
-  setIsLive: (live: boolean) => void;
-  setIsPlaying: (playing: boolean) => void;
   setPlaybackSpeed: (speed: number) => void;
+  startTime: number;
   setStartTime: (time: number | ((prev: number) => number)) => void;
+
+  // Derived values
+  windowSizeHours: number;
+
+  // Memoized handlers
   handleLiveToggle: (live: boolean) => void;
   handlePlayPause: (playing: boolean) => void;
   handleStepBackward: () => void;
   handleStepForward: () => void;
 }
 
-// Capture initial time at module load (outside render)
-const INITIAL_TIME = Date.now();
+export interface UseTimelineStateOptions {
+  minTimeValue: number;
+  windowSizeHours?: number;
+}
 
-export function useTimeline(options: UseTimelineOptions = {}): TimelineState & TimelineActions {
-  const { windowSizeHours = 6, oldestTimestamp } = options;
-
+export function useTimelineState({
+  minTimeValue,
+  windowSizeHours = 6,
+}: UseTimelineStateOptions): TimelineState {
   const [isLive, setIsLive] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
-  const [startTime, setStartTime] = useState<number>(
-    INITIAL_TIME - 6 * 60 * 60 * 1000
-  );
-
-  // Track time bounds in state, updated via interval
-  const [timeBounds, setTimeBounds] = useState({
-    minTimeValue: oldestTimestamp ?? (INITIAL_TIME - 24 * 60 * 60 * 1000),
-    maxTimeValue: INITIAL_TIME,
-  });
-
-  // Ref to track if component is mounted
-  const mountedRef = useRef(false);
-
-  // Update time bounds periodically (every second when live)
-  useEffect(() => {
-    mountedRef.current = true;
-
-    // Only update periodically if in live mode
-    if (!isLive) return;
-
-    // Start interval for live updates (initial values set via useState)
-    const interval = setInterval(() => {
-      const currentTime = Date.now();
-      setTimeBounds({
-        minTimeValue: oldestTimestamp ?? (currentTime - 24 * 60 * 60 * 1000),
-        maxTimeValue: currentTime,
-      });
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [isLive, oldestTimestamp]);
-
-  const { minTimeValue, maxTimeValue } = timeBounds;
+  // Use lazy initializer to capture time at mount, not on every render
+  const [startTime, setStartTime] = useState(() => Date.now() - windowSizeHours * 60 * 60 * 1000);
 
   // TIMELAPSE PLAYBACK MODE
   useEffect(() => {
@@ -121,16 +88,14 @@ export function useTimeline(options: UseTimelineOptions = {}): TimelineState & T
 
   return {
     isLive,
-    isPlaying,
-    playbackSpeed,
-    startTime,
-    minTimeValue,
-    maxTimeValue,
-    windowSizeHours,
     setIsLive,
+    isPlaying,
     setIsPlaying,
+    playbackSpeed,
     setPlaybackSpeed,
+    startTime,
     setStartTime,
+    windowSizeHours,
     handleLiveToggle,
     handlePlayPause,
     handleStepBackward,

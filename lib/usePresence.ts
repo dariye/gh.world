@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
 
@@ -37,25 +37,21 @@ export interface ViewerData {
 }
 
 export function usePresence() {
-    const [mounted, setMounted] = useState(false);
+    // Use refs for client-side values (avoids hydration mismatches)
     const sessionIdRef = useRef<string>("");
     const regionRef = useRef<string>("");
-
-    // Initialize on mount
-    useEffect(() => {
-        sessionIdRef.current = getSessionId();
-        regionRef.current = getRegionFromTimezone();
-        setMounted(true);
-    }, []);
 
     const heartbeat = useMutation(api.presence.heartbeat);
     const viewers = useQuery(api.presence.getViewers);
 
-    // Send heartbeat every 10 seconds
+    // Initialize and send heartbeat (single effect for both)
     useEffect(() => {
-        if (!mounted || !sessionIdRef.current) return;
+        // Initialize refs on mount (effect runs only on client)
+        sessionIdRef.current = getSessionId();
+        regionRef.current = getRegionFromTimezone();
 
         const sendHeartbeat = async () => {
+            if (!sessionIdRef.current) return;
             try {
                 await heartbeat({
                     sessionId: sessionIdRef.current,
@@ -74,7 +70,7 @@ export function usePresence() {
         const interval = setInterval(sendHeartbeat, 10000);
 
         return () => clearInterval(interval);
-    }, [mounted, heartbeat]);
+    }, [heartbeat]);
 
     return {
         viewers: viewers ?? { total: 0, byRegion: {} },
