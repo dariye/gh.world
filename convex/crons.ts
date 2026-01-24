@@ -21,8 +21,7 @@ crons.interval(
 crons.interval(
     "poll github events",
     { minutes: 1 },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Required workaround for Convex circular type inference between crons and actions
-    (internal as any).actions.pollPublicEvents
+    internal.actions.pollPublicEvents
 );
 
 // Delete commits older than 1 hour every 5 minutes

@@ -1,6 +1,13 @@
-import { internalAction } from "./_generated/server";
+import { internalAction, ActionCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { Octokit } from "@octokit/rest";
+
+// Type for cached repo language query result
+interface CachedRepoLanguage {
+    repo: string;
+    language: string | null;
+    cachedAt: number;
+}
 
 // Type for PushEvent payload (event payloads are not fully typed by Octokit)
 interface PushEventPayload {
@@ -80,8 +87,7 @@ export const pollPublicEvents = internalAction({
                 // We enrich even if no location, so we can color the pulse correctly
                 if (shouldEnrich) {
                     try {
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Convex query return type inference limitation
-                        const cachedLang: any = await ctx.runQuery(internal.commits.getCachedRepoLanguage, { repo });
+                        const cachedLang = await ctx.runQuery(internal.commits.getCachedRepoLanguage, { repo }) as CachedRepoLanguage | null;
                         if (cachedLang) {
                             language = cachedLang.language;
                         } else {
@@ -130,11 +136,11 @@ export const pollPublicEvents = internalAction({
                 skippedRateLimit: false,
             } as const;
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Error type needs status property access for rate limit detection
-        } catch (error: any) {
+        } catch (error: unknown) {
             // Handle rate limit errors gracefully
-            if (error?.status === 403 || error?.status === 429) {
-                console.warn(`GitHub API rate limit hit (${error.status}). Skipping this poll cycle.`);
+            const statusCode = error instanceof Error && 'status' in error ? (error as { status: number }).status : null;
+            if (statusCode === 403 || statusCode === 429) {
+                console.warn(`GitHub API rate limit hit (${statusCode}). Skipping this poll cycle.`);
                 return {
                     newCommitsCount: 0,
                     totalEventsProcessed: 0,
@@ -186,8 +192,7 @@ export const validateGitHubToken = internalAction({
     },
 });
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- ActionCtx type from generated server creates circular dependency
-async function getCoordinatesForUser(ctx: any, username: string): Promise<number[] | null> {
+async function getCoordinatesForUser(ctx: ActionCtx, username: string): Promise<number[] | null> {
     // Check cache first
     const cached = await ctx.runQuery(internal.commits.getCachedLocation, { username });
     if (cached) {
