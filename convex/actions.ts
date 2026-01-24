@@ -80,6 +80,7 @@ export const pollPublicEvents = internalAction({
                 // We enrich even if no location, so we can color the pulse correctly
                 if (shouldEnrich) {
                     try {
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Convex query return type inference limitation
                         const cachedLang: any = await ctx.runQuery(internal.commits.getCachedRepoLanguage, { repo });
                         if (cachedLang) {
                             language = cachedLang.language;
@@ -129,6 +130,7 @@ export const pollPublicEvents = internalAction({
                 skippedRateLimit: false,
             } as const;
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Error type needs status property access for rate limit detection
         } catch (error: any) {
             // Handle rate limit errors gracefully
             if (error?.status === 403 || error?.status === 429) {
@@ -184,6 +186,7 @@ export const validateGitHubToken = internalAction({
     },
 });
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- ActionCtx type from generated server creates circular dependency
 async function getCoordinatesForUser(ctx: any, username: string): Promise<number[] | null> {
     // Check cache first
     const cached = await ctx.runQuery(internal.commits.getCachedLocation, { username });
